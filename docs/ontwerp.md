@@ -92,3 +92,10 @@ Gebouwd: M1–M6 (voertuig + RDW + bronnen, tanklog, onderhoud + APK, wassen/ban
 - Optie `apk_date` (handmatig) voor auto's zonder RDW-gegevens.
 - Kaart toont status en heeft snelknoppen; geen zijbalkpaneel en geen grafiek.
 - Alle bedragen in de HA-valuta (één valuta per installatie).
+
+## Zijbalkpaneel (0.2.0)
+`panel_custom` (webcomponent `garagelog-panel`, `www/garagelog-panel.js`, geen buildstap), icoon `mdi:car`, titel Garagelog, `require_admin` via de optie
+`panel_admin_only` (globaal: telt als één auto het aan heeft). Het paneel wordt geregistreerd bij het opzetten van de eerste auto en verwijderd bij het laatste.
+Websocket: `garagelog/vehicles`, `garagelog/subscribe` (met `entry_id` en `full`; overleeft het herladen van de entry), `record_add`/`record_update`/`record_remove`
+(velden en validatie gedeeld met de services via `records.py`), `settings_set` (alleen admin, validatie in `settings.py`) en `notify_targets`.
+Tabs: overzicht, tanken, onderhoud, wassen, banden (live druk per wiel + bandenregistraties als service-type `tyres`), olie (peilingen + `oil_change`), kosten (SVG, gestapeld per maand), instellingen.

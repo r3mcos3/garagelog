@@ -19,6 +19,10 @@ and oil, in one standalone integration. No cloud account, no app, no server: eve
 - **Costs:** total, this year, this month, average per month.
 - **Reminders** are events (`garagelog_apk_due`, `garagelog_service_due`, `garagelog_wash_due`, `garagelog_tyre_pressure`,
   `garagelog_oil_check_due`, `garagelog_oil_change_due`) and messages to the notify targets you choose (Telegram, phone, ...).
+- A **sidebar panel** "Garagelog" (icon `mdi:car`): a full page per vehicle with an overview (warnings, APK, next service, last refuel,
+  consumption, costs, live source values, tyre pressure per wheel, oil life), log tabs (fuel, maintenance, washing, tyres, oil) with add / edit /
+  delete, a cost tab with a stacked monthly chart and a period filter, and a settings tab. Several vehicles are chosen in the header; on a phone
+  the menu button opens the Home Assistant sidebar. Optionally only for administrators (setting "Sidebar panel for admins only").
 - A **dashboard card** (`garagelog-card`) with the status of the vehicle and quick buttons (refuel, washed, oil checked).
 - English and Dutch.
 
@@ -40,6 +44,16 @@ All take `entity_id` (any Garagelog entity of the vehicle) and return the stored
 | `garagelog.remove_record` | `collection`, `id` |
 | `garagelog.refresh_rdw` | refresh the RDW data (APK date) |
 
+## Sidebar panel
+
+The panel appears in the sidebar as soon as a vehicle is set up and disappears with the last one. Tabs: Overview, Fuel, Maintenance, Washing,
+Tyres, Oil, Costs, Settings. Dates are typed as dd-mm-yyyy. The settings tab changes the same options as Configure on the integration.
+
+| Desktop | Phone |
+|---|---|
+| ![overview](docs/screenshots/panel-desktop-overview.png) | ![overview](docs/screenshots/panel-mobile-overview.png) |
+| ![costs](docs/screenshots/panel-desktop-costs.png) | ![form](docs/screenshots/panel-mobile-modal.png) |
+
 ## Card
 
 ```yaml
@@ -50,7 +64,7 @@ entity: sensor.ford_kuga_ab123c_odometer
 ## Limitations (0.1.0)
 
 Single currency (the Home Assistant currency); no export/import service yet (format in `docs/ontwerp.md`); tankbeurten are not detected
-from the fuel level; no sidebar panel. The oil-change figure is an extrapolation, not a measurement.
+from the fuel level. The tyre tab logs tyre changes and repairs as maintenance entries; tyre pressure itself is read from the source entities, not logged. The oil-change figure is an extrapolation, not a measurement.
 
 Design: `docs/ontwerp.md`. Why this exists next to Vehicle Log and others: `docs/vergelijking.md`.
 

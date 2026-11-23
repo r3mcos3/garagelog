@@ -176,7 +176,12 @@
       const id = this._entryId;
       try {
         const unsub = await this._hass.connection.subscribeMessage(
-          (snap) => { if (snap.entry_id === this._entryId) { this._snap = snap; this._render(); } },
+          (snap) => {
+            if (snap.entry_id !== this._entryId) return;
+            this._snap = snap;
+            this._render();
+            if (this._tab === "settings") this._loadTargets();
+          },
           { type: "garagelog/subscribe", entry_id: id, full: true });
         if (this._entryId === id) this._unsub = unsub; else unsub();
       } catch (err) {
@@ -300,7 +305,10 @@
     _tab_overview() {
       const t = this.t, s = this._snap, v = s.view;
       const warn = s.warnings.length
-        ? s.warnings.map((w) => `<div class="alert ${w.level === "bad" ? "bad" : ""}" data-w="${esc(w.kind)}"><b>${esc(t["w_" + w.kind])}</b><span>${esc(t[`w_${w.kind}_text`](w))}</span></div>`).join("")
+        ? s.warnings.map((w0) => {
+          const w = { ...w0, deviation: w0.deviation == null ? null : this._num(w0.deviation, 2), km: w0.km == null ? null : this._num(w0.km) };
+          return `<div class="alert ${w.level === "bad" ? "bad" : ""}" data-w="${esc(w.kind)}"><b>${esc(t["w_" + w.kind])}</b><span>${esc(t[`w_${w.kind}_text`](w))}</span></div>`;
+        }).join("")
         : `<div class="good" id="allgood">✓ ${esc(t.all_good)}</div>`;
       const apk = v.apk_days;
       const apkTile = this._tile(apk == null ? "" : apk < 0 ? "bad" : v.apk_due ? "warn" : "ok", t.apk,
@@ -463,7 +471,8 @@
       const total = sum("refuel") + sum("service") + sum("wash");
       const periodOpts = ["3", "6", "12", "year", "all"].map((p) => `<option value="${p}" ${this._period === p ? "selected" : ""}>${esc(t["p_" + p])}</option>`).join("");
       const legend = ["refuel", "service", "wash"].map((k) => `<span><i class="c-${k}"></i>${esc(t["c_" + k])}: <b>${esc(this._money(sum(k)))}</b></span>`).join("");
-      const rows = [...months].reverse().map((m) => `<tr><td>${esc(m.month)}</td><td class="num">${esc(this._money(m.refuel))}</td><td class="num">${esc(this._money(m.service))}</td><td class="num">${esc(this._money(m.wash))}</td><td class="num"><b>${esc(this._money(m.refuel + m.service + m.wash))}</b></td></tr>`).join("");
+      const label = (key) => `${MONTH[this.lang][+key.slice(5, 7) - 1]} ${key.slice(0, 4)}`;
+      const rows = [...months].reverse().map((m) => `<tr><td>${esc(label(m.month))}</td><td class="num">${esc(this._money(m.refuel))}</td><td class="num">${esc(this._money(m.service))}</td><td class="num">${esc(this._money(m.wash))}</td><td class="num"><b>${esc(this._money(m.refuel + m.service + m.wash))}</b></td></tr>`).join("");
       return `<div class="card"><div class="bar"><h2 style="margin:0">${esc(t.costs)}</h2><label>${esc(t.period)}: <select class="period" id="period">${periodOpts}</select></label></div>
         ${total ? this._chart(months) : `<div class="empty" id="nocosts">${esc(t.no_costs)}</div>`}
         <div class="legend">${legend}<span>${esc(t.total)}: <b id="costtotal">${esc(this._money(total))}</b></span></div>

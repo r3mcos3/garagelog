@@ -24,7 +24,9 @@ jobs:
       - name: Ruff
         run: ruff check .
       - name: JavaScript syntax
-        run: node --check custom_components/garagelog/www/garagelog-card.js
+        run: |
+          node --check custom_components/garagelog/www/garagelog-card.js
+          node --check custom_components/garagelog/www/garagelog-panel.js
       - name: Browser available for the card tests
         run: |
           (command -v google-chrome || command -v chromium || command -v chromium-browser) && true

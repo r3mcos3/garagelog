@@ -14,3 +14,13 @@ Telegram, mobiel en de kaart in het echte dashboard zijn niet getest.** Doorloop
 8. Kaart toevoegen (`type: custom:garagelog-card`, `entity: ...`), op desktop en mobiel; knoppen Tanken / Gewassen / Olie gepeild.
 9. Herstart HA: blijven logs, meldingsstatus (geen dubbele meldingen) en schattingen behouden?
 10. Verwijder de auto: is de opslag (`.storage/garagelog.<entry_id>`) weg?
+
+## Zijbalkpaneel (0.2.0)
+11. Verschijnt "Garagelog" (auto-icoon) in de zijbalk na het toevoegen van de auto? Verdwijnt het na het verwijderen van de laatste auto?
+12. Overzicht: kloppen APK, volgende beurt, laatste tank, verbruik en kosten met de sensoren? Staan de live bronwaarden en de bandenspanning per wiel (links/rechts voor/achter in de juiste volgorde van je vier sensoren) goed?
+13. Tanken, onderhoud, wassen, olie: toevoegen, bewerken (kosten of prijs per liter wijzigen: volgt de ander?) en verwijderen (met bevestiging). Datum typen als dd-mm-jjjj.
+14. Banden-tab: bandenwissel loggen; olie-tab: peiling en olieverversing loggen (verversing reset de schatting).
+15. Kosten-tab: klopt de gestapelde grafiek met de maandtotalen? Periodefilter (3, 6, 12 maanden, dit jaar, alles).
+16. Instellingen-tab: meldingsdoel kiezen en opslaan, bron wissen en opnieuw kiezen, "alleen beheerders": zie je het paneel als niet-beheerder niet meer?
+17. Telefoon (HA-app): past de pagina, werkt ☰ (opent de HA-zijbalk), zijn formulieren bruikbaar, scrollt de tabbalk?
+18. Twee auto's (als je die hebt): wisselen in de kop, blijft elke auto zijn eigen data houden?
