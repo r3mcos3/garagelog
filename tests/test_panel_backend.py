@@ -262,3 +262,25 @@ async def test_panel_file_is_served(hass, hass_client, setup_entry):
     assert resp.status == 200 and "garagelog-panel" in await resp.text()
 
 
+
+
+async def test_settings_fuel_stations_validated_and_saved(hass, hass_ws_client, setup_entry):
+    client = await hass_ws_client(hass)
+    stations = [{"name": " Tilburg ", "entity_id": "sensor.fuel_a"}, {"name": "Poppel", "entity_id": "sensor.fuel_b"}]
+    res = await ws(client, type="garagelog/settings_set", entry_id=setup_entry.entry_id,
+                   settings={"fuel_stations": stations, "tank_capacity_l": "52"})
+    assert res["success"]
+    await hass.async_block_till_done()
+    assert setup_entry.options["fuel_stations"][0] == {"name": "Tilburg", "entity_id": "sensor.fuel_a"}
+    assert setup_entry.options["tank_capacity_l"] == 52.0
+    assert {"sensor.fuel_a", "sensor.fuel_b"} <= set(setup_entry.runtime_data.source_entities())
+    for bad in ([{"name": "", "entity_id": "sensor.x"}], [{"name": "A", "entity_id": "nodot"}],
+                [stations[0], stations[0]], [{"name": str(i), "entity_id": f"sensor.s{i}"} for i in range(9)]):
+        res = await ws(client, type="garagelog/settings_set", entry_id=setup_entry.entry_id, settings={"fuel_stations": bad})
+        assert not res["success"]
+    res = await ws(client, type="garagelog/settings_set", entry_id=setup_entry.entry_id, settings={"tank_capacity_l": 5})
+    assert not res["success"]
+    res = await ws(client, type="garagelog/settings_set", entry_id=setup_entry.entry_id, settings={"fuel_stations": []})
+    assert res["success"]
+    await hass.async_block_till_done()
+    assert "fuel_stations" not in setup_entry.options

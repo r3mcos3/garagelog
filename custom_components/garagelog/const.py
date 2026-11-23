@@ -17,6 +17,8 @@ CONF_NAME = "name"
 CONF_SKIP_RDW = "skip_rdw"
 CONF_ODOMETER_ENTITY = "odometer_entity"
 CONF_FUEL_LEVEL_ENTITY = "fuel_level_entity"
+CONF_FUEL_STATIONS = "fuel_stations"
+CONF_TANK_CAPACITY = "tank_capacity_l"
 CONF_TYRE_ENTITIES = "tyre_entities"
 CONF_OIL_LIFE_ENTITY = "oil_life_entity"
 
@@ -61,6 +63,11 @@ SERVICES = "services"
 WASHES = "washes"
 OIL_CHECKS = "oil_checks"
 OIL_SAMPLES = "oil_samples"
+FUEL_PRICES = "fuel_prices"
+FUEL_GAP = "gap"
+MAX_FUEL_STATIONS = 8
+PRICE_RETENTION_DAYS = 365
+DEFAULT_TANK_LITERS = 50.0
 COLLECTIONS = (REFUELS, SERVICES, WASHES, OIL_CHECKS)
 
 # wash status

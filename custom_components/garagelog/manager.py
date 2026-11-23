@@ -20,6 +20,7 @@ from .const import (
     CONF_APK_DATE,
     CONF_APK_DAYS,
     CONF_FUEL_LEVEL_ENTITY,
+    CONF_FUEL_STATIONS,
     CONF_NOTIFY_TARGETS,
     CONF_ODOMETER_ENTITY,
     CONF_OIL_CHECK_DAY,
@@ -27,6 +28,7 @@ from .const import (
     CONF_PLATE,
     CONF_SERVICE_INTERVAL_DAYS,
     CONF_SERVICE_INTERVAL_KM,
+    CONF_TANK_CAPACITY,
     CONF_TYRE_ENTITIES,
     CONF_TYRE_TARGET,
     CONF_TYRE_THRESHOLD,
@@ -36,6 +38,7 @@ from .const import (
     DEFAULT_OIL_CHECK_DAY,
     DEFAULT_SERVICE_INTERVAL_DAYS,
     DEFAULT_SERVICE_INTERVAL_KM,
+    DEFAULT_TANK_LITERS,
     DEFAULT_TYRE_TARGET,
     DEFAULT_TYRE_THRESHOLD,
     DEFAULT_WASH_DUE_DAYS,
@@ -47,6 +50,8 @@ from .const import (
     EVENT_SERVICE_DUE,
     EVENT_TYRE_PRESSURE,
     EVENT_WASH_DUE,
+    FUEL_GAP,
+    FUEL_PRICES,
     OIL_CHANGE_SOON_DAYS,
     OIL_CHANGE_SOON_KM,
     OIL_CHECKS,
@@ -148,7 +153,12 @@ class VehicleManager:
 
     def source_entities(self) -> list[str]:
         singles = [self._entity(k) for k in (CONF_ODOMETER_ENTITY, CONF_FUEL_LEVEL_ENTITY, CONF_OIL_LIFE_ENTITY)]
-        return [e for e in [*singles, *self._tyre_entities()] if e]
+        stations = [st["entity_id"] for st in self.stations()]
+        return [e for e in [*singles, *self._tyre_entities(), *stations] if e]
+
+    def stations(self) -> list[dict[str, str]]:
+        """Fuel price stations: a name and the entity that carries the price per litre."""
+        return [dict(st) for st in self.entry.options.get(CONF_FUEL_STATIONS) or []]
 
     # ------------------------------------------------------------------ lifecycle
 
@@ -234,6 +244,78 @@ class VehicleManager:
                         out[str(wheel)] = bar
         return out
 
+    # ------------------------------------------------------------------ fuel prices
+
+    def station_price(self, entity_id: str) -> float | None:
+        value = _number(self.hass.states.get(entity_id))
+        return value if value is not None and value > 0 else None
+
+    def _record_prices(self) -> None:
+        """Log every price change (and the gap between the cheapest and the priciest station)."""
+        now = dt_util.utcnow()
+        stations = self.stations()
+        self.store.forget_prices({st["entity_id"] for st in stations} | {FUEL_GAP})
+        prices = []
+        for st in stations:
+            price = self.station_price(st["entity_id"])
+            if price is not None:
+                self.store.log_price(st["entity_id"], price, now)
+                prices.append(price)
+        if len(prices) >= 2:
+            self.store.log_price(FUEL_GAP, round(max(prices) - min(prices), 3), now)
+
+    def tank_liters(self, refuels: list[dict[str, Any]]) -> tuple[float, str]:
+        capacity = self.entry.options.get(CONF_TANK_CAPACITY)
+        if capacity:
+            return float(capacity), "setting"
+        fulls = [r["liters"] for r in refuels if r.get("full") and r.get("liters")]
+        if fulls:
+            return round(sum(fulls) / len(fulls), 1), "average"
+        return DEFAULT_TANK_LITERS, "default"
+
+    def _fuel_prices_view(self, refuels: list[dict[str, Any]]) -> dict[str, Any]:
+        stations = self.stations()
+        if not stations:
+            return {"stations": [], "cheapest": None, "gap": None, "tank": None}
+        now, today = dt_util.utcnow(), dt_util.now().date()
+        tank, source = self.tank_liters(refuels)
+        percent = self._state_number(CONF_FUEL_LEVEL_ENTITY)
+        rows = []
+        for st in stations:
+            log = self.store.price_log(st["entity_id"])
+            price = self.station_price(st["entity_id"])
+            top = calc.top_up(price, tank, percent) if price is not None else None
+            rows.append(
+                {
+                    **st,
+                    "price": price,
+                    "change": calc.price_change(log),
+                    "trend": calc.price_trend(log, price, now),
+                    "best_day": calc.best_weekday(log, today, now),
+                    "top_up": top,
+                }
+            )
+        priced = [r for r in rows if r["price"] is not None]
+        cheapest = min(priced, key=lambda r: r["price"]) if priced else None
+        priciest = max(priced, key=lambda r: r["price"]) if priced else None
+        gap = None
+        if len(priced) >= 2 and cheapest is not priciest:
+            history = self.store.price_log(FUEL_GAP)
+            current = round(priciest["price"] - cheapest["price"], 3)
+            earlier = next((e["price"] for e in reversed(history) if e["price"] != current), None)
+            gap = {
+                "value": current,
+                "cheapest": cheapest["name"],
+                "priciest": priciest["name"],
+                "delta": round(current - earlier, 3) if earlier is not None else None,
+            }
+        return {
+            "stations": rows,
+            "cheapest": {"name": cheapest["name"], "price": cheapest["price"]} if cheapest else None,
+            "gap": gap,
+            "tank": {"liters": tank, "source": source, "fuel_percent": percent},
+        }
+
     def oil_life(self) -> float | None:
         return self._state_number(CONF_OIL_LIFE_ENTITY)
 
@@ -262,6 +344,7 @@ class VehicleManager:
     def async_refresh(self) -> None:
         """Recompute every derived value and tell the entities."""
         today = dt_util.now().date()
+        self._record_prices()
         refuels, services = self.store.records(REFUELS), self.store.records(SERVICES)
         washes, checks = self.store.records(WASHES), self.store.records(OIL_CHECKS)
         odo = self.odometer()
@@ -320,6 +403,7 @@ class VehicleManager:
             "oil_life": self.oil_life(),
             "oil_estimate": estimate,
             "rdw": self.store.data["rdw"],
+            "fuel_prices": self._fuel_prices_view(refuels),
             "last_refuel": last_refuel,
             "records": {
                 "refuels": len(refuels),
@@ -405,6 +489,9 @@ class VehicleManager:
             data["monthly"] = calc.monthly_costs(
                 self.store.records(REFUELS), self.store.records(SERVICES), self.store.records(WASHES)
             )
+            data["price_history"] = {
+                key: list(reversed(log)) for key, log in self.store.data[FUEL_PRICES].items()
+            }
             data["sources"] = self.sources()
             data["warnings"] = self.warnings()
             data["settings"] = settings_mod.effective(self.entry.data, self.entry.options)

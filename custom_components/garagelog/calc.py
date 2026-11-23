@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import calendar
 from collections.abc import Iterable
-from datetime import date
+from datetime import UTC, date, datetime
 from typing import Any
 
 from .const import (
@@ -275,3 +275,120 @@ def monthly_costs(
             )
             row[kind] = round(row[kind] + cost, 2)
     return [{"month": month, **months[month]} for month in sorted(months)]
+
+
+# --------------------------------------------------------------------- fuel prices
+# A price log holds only the CHANGES of a price: ``[{"price": 1.85, "at": "<iso datetime>"}, ...]`` oldest first.
+
+PRICE_TREND_MIN_DAYS = 14
+PRICE_TREND_MIN_PCT = 1.0
+WEEKDAY_MIN_SPAN_DAYS = 60
+WEEKDAY_MIN_SAMPLE_DAYS = 4
+WEEKDAY_MIN_GAP = 0.005
+
+
+def _at(entry: Record) -> datetime:
+    when = datetime.fromisoformat(str(entry["at"]))
+    return when if when.tzinfo else when.replace(tzinfo=UTC)
+
+
+def price_change(entries: list[Record]) -> Record:
+    """Last change of a price: the previous (different) price, the delta and since when the current price holds."""
+    empty = {"previous": None, "direction": None, "delta": None, "since": None}
+    if not entries:
+        return empty
+    current = entries[-1]["price"]
+    since = entries[-1]["at"]
+    for entry in reversed(entries):
+        if entry["price"] != current:
+            break
+        since = entry["at"]
+    previous = next((e["price"] for e in reversed(entries) if e["price"] != current), None)
+    if previous is None:
+        return {**empty, "since": since}
+    delta = round(current - previous, 3)
+    return {
+        "previous": previous,
+        "direction": "up" if delta > 0 else "down" if delta < 0 else "same",
+        "delta": delta,
+        "since": since,
+    }
+
+
+def weighted_average_price(entries: list[Record], now: datetime) -> float | None:
+    """Time-weighted average: each price counts for as long as it was in effect."""
+    total = weighted = 0.0
+    for index, entry in enumerate(entries):
+        end = _at(entries[index + 1]) if index + 1 < len(entries) else now
+        seconds = (end - _at(entry)).total_seconds()
+        if seconds > 0:
+            weighted += entry["price"] * seconds
+            total += seconds
+    return weighted / total if total else None
+
+
+def price_trend(entries: list[Record], current: float | None, now: datetime) -> Record | None:
+    """How far the current price is from its own average over the logged period (needs >= 14 days)."""
+    if current is None or not entries:
+        return None
+    days = (now - _at(entries[0])).total_seconds() / 86400
+    if days < PRICE_TREND_MIN_DAYS:
+        return None
+    average = weighted_average_price(entries, now)
+    if not average:
+        return None
+    pct = (current - average) / average * 100
+    if abs(pct) < PRICE_TREND_MIN_PCT:
+        return None
+    return {"pct": round(pct, 1), "days": round(days), "average": round(average, 3)}
+
+
+def weekday_averages(entries: list[Record], today: date, window_days: int = 365) -> list[Record]:
+    """Average price per weekday (0 = Monday), forward-filling the price of every day from the change log."""
+    if not entries:
+        return []
+    changes = sorted(entries, key=_at)
+    sums, counts = [0.0] * 7, [0] * 7
+    for back in range(window_days):
+        day = _add_days(today, -back)
+        price = None
+        for change in reversed(changes):
+            if _at(change).date() <= day:
+                price = change["price"]
+                break
+        if price is None:
+            continue
+        sums[day.weekday()] += price
+        counts[day.weekday()] += 1
+    return [
+        {"weekday": d, "average": round(sums[d] / counts[d], 3), "days": counts[d]} for d in range(7) if counts[d]
+    ]
+
+
+def best_weekday(entries: list[Record], today: date, now: datetime) -> Record | None:
+    """Cheapest and priciest weekday, only with >= 60 days of history and >= 4 samples per weekday."""
+    if not entries or (now - _at(entries[0])).total_seconds() / 86400 < WEEKDAY_MIN_SPAN_DAYS:
+        return None
+    averages = weekday_averages(entries, today)
+    if len(averages) < 7 or any(a["days"] < WEEKDAY_MIN_SAMPLE_DAYS for a in averages):
+        return None
+    cheapest = min(averages, key=lambda a: a["average"])
+    priciest = max(averages, key=lambda a: a["average"])
+    gap = round(priciest["average"] - cheapest["average"], 3)
+    if cheapest["weekday"] == priciest["weekday"] or gap < WEEKDAY_MIN_GAP:
+        return None
+    return {
+        "cheapest": cheapest["weekday"],
+        "cheapest_average": cheapest["average"],
+        "priciest": priciest["weekday"],
+        "gap": gap,
+    }
+
+
+def top_up(price: float, tank_liters: float, fuel_percent: float | None) -> Record:
+    """Cost of filling up: the whole tank, or only what is missing when the fuel level is known."""
+    if fuel_percent is None:
+        needed = tank_liters
+    else:
+        needed = max(tank_liters * (1 - max(0.0, min(100.0, fuel_percent)) / 100), 0.0)
+    return {"liters": round(needed, 1), "cost": round(price * needed, 2)}

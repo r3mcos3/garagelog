@@ -324,3 +324,49 @@ async def test_remove_entry_removes_store(hass, hass_storage, mock_entry):
     assert key in hass_storage
     await hass.config_entries.async_remove(mock_entry.entry_id)
     assert key not in hass_storage
+
+
+async def test_fuel_prices_log_changes_gap_and_top_up(hass, mock_entry, freezer):
+    hass.states.async_set("sensor.fuel_a", "1.900")
+    hass.states.async_set("sensor.fuel_b", "1.800")
+    hass.states.async_set("sensor.car_fuel", "40", {"unit_of_measurement": "%"})
+    stations = [{"name": "A", "entity_id": "sensor.fuel_a"}, {"name": "B", "entity_id": "sensor.fuel_b"}]
+    await setup(hass, mock_entry, freezer, "2026-11-01 12:00:00+01:00", fuel_stations=stations, tank_capacity_l=50.0,
+                fuel_level_entity="sensor.car_fuel")
+    manager = mock_entry.runtime_data
+    prices = manager.view["fuel_prices"]
+    assert prices["cheapest"] == {"name": "B", "price": 1.8}
+    assert prices["gap"]["value"] == 0.1 and prices["gap"]["cheapest"] == "B" and prices["gap"]["priciest"] == "A"
+    assert prices["tank"] == {"liters": 50.0, "source": "setting", "fuel_percent": 40.0}
+    assert prices["stations"][1]["top_up"] == {"liters": 30.0, "cost": 54.0}
+    assert val(hass, mock_entry, "cheapest_fuel_price") == "1.8"
+    assert hass.states.get(eid(hass, mock_entry, "cheapest_fuel_price")).attributes["station"] == "B"
+    # an unchanged price is not logged again, a changed one is
+    hass.states.async_set("sensor.fuel_a", "1.900")
+    freezer.move_to("2026-11-02 12:00:00+01:00")
+    hass.states.async_set("sensor.fuel_a", "1.850")
+    await hass.async_block_till_done()
+    log = manager.store.price_log("sensor.fuel_a")
+    assert [e["price"] for e in log] == [1.9, 1.85]
+    assert manager.view["fuel_prices"]["stations"][0]["change"]["direction"] == "down"
+    snapshot = manager.snapshot(full=True)
+    assert [e["price"] for e in snapshot["price_history"]["sensor.fuel_a"]] == [1.85, 1.9]  # newest first
+    assert snapshot["price_history"]["gap"][0]["price"] == 0.05
+    # an unavailable station is skipped; a removed station loses its history
+    hass.states.async_set("sensor.fuel_b", "unavailable")
+    await hass.async_block_till_done()
+    assert manager.view["fuel_prices"]["cheapest"]["name"] == "A" and manager.view["fuel_prices"]["gap"] is None
+    manager.stations = lambda: [stations[0]]
+    manager.async_refresh()
+    assert "sensor.fuel_b" not in manager.store.data["fuel_prices"]
+
+
+async def test_tank_size_falls_back_to_average_then_default(hass, mock_entry, freezer):
+    hass.states.async_set("sensor.fuel_a", "1.9")
+    await setup(hass, mock_entry, freezer, "2026-11-01 12:00:00+01:00", fuel_stations=[{"name": "A", "entity_id": "sensor.fuel_a"}])
+    assert mock_entry.runtime_data.view["fuel_prices"]["tank"]["source"] == "default"
+    assert mock_entry.runtime_data.view["fuel_prices"]["tank"]["liters"] == 50.0
+    await call(hass, mock_entry, "log_refuel", liters=40, odometer=1000, date="2026-10-10", full=True)
+    await call(hass, mock_entry, "log_refuel", liters=44, odometer=1600, date="2026-10-20", full=True)
+    tank = mock_entry.runtime_data.view["fuel_prices"]["tank"]
+    assert tank["source"] == "average" and tank["liters"] == 42.0

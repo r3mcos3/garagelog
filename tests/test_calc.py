@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import UTC, date, datetime
 
 import pytest
 
@@ -127,3 +127,58 @@ def test_oil_estimate_needs_enough_data():
     assert calc.oil_estimate(one, today=date(2026, 1, 1), odometer=None) is None
     small = [*one, {"date": "2026-01-10", "odometer": 500, "life_pct": 99}]
     assert calc.oil_estimate(small, today=date(2026, 1, 10), odometer=500) is None
+
+
+# ---------------------------------------------------------------- fuel prices
+def _log(*pairs):
+    return [{"price": p, "at": f"{d}T12:00:00+00:00"} for d, p in pairs]
+
+
+def test_price_change_previous_and_since():
+    log = _log(("2026-10-01", 1.90), ("2026-10-10", 1.85), ("2026-10-20", 1.85), ("2026-11-01", 1.80))
+    change = calc.price_change(log)
+    assert change["previous"] == 1.85 and change["direction"] == "down" and change["delta"] == -0.05
+    assert change["since"].startswith("2026-11-01")
+    log.append({"price": 1.80, "at": "2026-11-05T12:00:00+00:00"})
+    assert calc.price_change(log)["since"].startswith("2026-11-01")  # same price: since the first of the run
+    assert calc.price_change(_log(("2026-10-01", 1.9)))["previous"] is None
+    assert calc.price_change([])["direction"] is None
+
+
+def test_weighted_average_counts_duration():
+    log = _log(("2026-10-01", 2.00), ("2026-10-11", 1.00))
+    now = datetime(2026, 10, 21, 12, tzinfo=UTC)
+    assert calc.weighted_average_price(log, now) == pytest.approx(1.5)
+    assert calc.weighted_average_price([], now) is None
+
+
+def test_price_trend_needs_14_days_and_one_percent():
+    now = datetime(2026, 11, 1, 12, tzinfo=UTC)
+    assert calc.price_trend(_log(("2026-10-25", 1.9)), 1.7, now) is None  # only 7 days
+    log = _log(("2026-10-01", 2.00), ("2026-10-20", 1.80))
+    trend = calc.price_trend(log, 1.80, now)
+    assert trend["pct"] < 0 and trend["days"] == 31
+    assert calc.price_trend(_log(("2026-10-01", 1.80)), 1.80, now) is None  # equal to its average
+    assert calc.price_trend(log, None, now) is None
+
+
+def test_best_weekday_needs_history_and_a_gap():
+    now = datetime(2026, 11, 20, 12, tzinfo=UTC)
+    short = _log(("2026-10-25", 1.8))
+    assert calc.best_weekday(short, date(2026, 11, 20), now) is None
+    # a price that is 10 cents lower on every Sunday only: logged as changes each week
+    log = []
+    day = date(2026, 1, 4)  # a Sunday
+    while day < date(2026, 11, 20):
+        log.append({"price": 1.80, "at": f"{day.isoformat()}T01:00:00+00:00"})
+        log.append({"price": 1.90, "at": f"{date.fromordinal(day.toordinal() + 1).isoformat()}T01:00:00+00:00"})
+        day = date.fromordinal(day.toordinal() + 7)
+    best = calc.best_weekday(log, date(2026, 11, 20), now)
+    assert best["cheapest"] == 6 and best["gap"] >= 0.005
+    assert calc.best_weekday(_log(("2026-01-01", 1.8)), date(2026, 11, 20), now) is None  # flat: no gap
+
+
+def test_top_up_full_tank_or_missing_part():
+    assert calc.top_up(1.8, 50, None) == {"liters": 50.0, "cost": 90.0}
+    assert calc.top_up(1.8, 50, 40) == {"liters": 30.0, "cost": 54.0}
+    assert calc.top_up(1.8, 50, 120)["liters"] == 0.0

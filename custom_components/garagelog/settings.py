@@ -8,6 +8,7 @@ from .const import (
     CONF_APK_DATE,
     CONF_APK_DAYS,
     CONF_FUEL_LEVEL_ENTITY,
+    CONF_FUEL_STATIONS,
     CONF_NOTIFY_TARGETS,
     CONF_ODOMETER_ENTITY,
     CONF_OIL_CHECK_DAY,
@@ -15,6 +16,7 @@ from .const import (
     CONF_PANEL_ADMIN,
     CONF_SERVICE_INTERVAL_DAYS,
     CONF_SERVICE_INTERVAL_KM,
+    CONF_TANK_CAPACITY,
     CONF_TYRE_ENTITIES,
     CONF_TYRE_TARGET,
     CONF_TYRE_THRESHOLD,
@@ -28,11 +30,13 @@ from .const import (
     DEFAULT_TYRE_THRESHOLD,
     DEFAULT_WASH_DUE_DAYS,
     DEFAULT_WASH_SOON_DAYS,
+    MAX_FUEL_STATIONS,
 )
 
 FLOATS = {
     CONF_TYRE_TARGET: (1.0, 5.0, DEFAULT_TYRE_TARGET),
     CONF_TYRE_THRESHOLD: (0.05, 1.0, DEFAULT_TYRE_THRESHOLD),
+    CONF_TANK_CAPACITY: (10.0, 200.0, None),
 }
 INTS = {
     CONF_WASH_SOON_DAYS: (1, 365, DEFAULT_WASH_SOON_DAYS),
@@ -44,12 +48,28 @@ INTS = {
 }
 ENTITIES = (CONF_ODOMETER_ENTITY, CONF_FUEL_LEVEL_ENTITY, CONF_OIL_LIFE_ENTITY)
 KEYS = (
-    *FLOATS, *INTS, *ENTITIES, CONF_TYRE_ENTITIES, CONF_NOTIFY_TARGETS, CONF_APK_DATE, CONF_PANEL_ADMIN,
+    *FLOATS, *INTS, *ENTITIES, CONF_TYRE_ENTITIES, CONF_FUEL_STATIONS, CONF_NOTIFY_TARGETS, CONF_APK_DATE, CONF_PANEL_ADMIN,
 )
 
 
 class SettingsError(ValueError):
     """A value is out of range or of the wrong kind."""
+
+
+def _stations(value: Any) -> list[dict[str, str]]:
+    if not isinstance(value, list) or len(value) > MAX_FUEL_STATIONS:
+        raise SettingsError(f"{CONF_FUEL_STATIONS} must be a list of at most {MAX_FUEL_STATIONS} stations")
+    stations, seen = [], set()
+    for item in value:
+        name = str(item.get("name", "")).strip() if isinstance(item, dict) else ""
+        entity = str(item.get("entity_id", "")).strip() if isinstance(item, dict) else ""
+        if not name or "." not in entity:
+            raise SettingsError("every fuel station needs a name and an entity")
+        if entity in seen:
+            raise SettingsError(f"fuel station entity {entity} is used twice")
+        seen.add(entity)
+        stations.append({"name": name[:40], "entity_id": entity})
+    return stations
 
 
 def clean(raw: dict[str, Any]) -> dict[str, Any]:
@@ -74,6 +94,8 @@ def clean(raw: dict[str, Any]) -> dict[str, Any]:
             if not isinstance(value, list) or not all(isinstance(v, str) for v in value):
                 raise SettingsError(f"{key} must be a list of strings")
             out[key] = value
+        elif key == CONF_FUEL_STATIONS:
+            out[key] = _stations(value)
         elif key == CONF_PANEL_ADMIN:
             out[key] = bool(value)
         else:
@@ -96,6 +118,7 @@ def effective(entry_data: dict[str, Any], options: dict[str, Any]) -> dict[str, 
     for key in ENTITIES:
         result[key] = merged.get(key) or None
     result[CONF_TYRE_ENTITIES] = list(merged.get(CONF_TYRE_ENTITIES) or [])
+    result[CONF_FUEL_STATIONS] = [dict(s) for s in options.get(CONF_FUEL_STATIONS) or []]
     result[CONF_NOTIFY_TARGETS] = list(options.get(CONF_NOTIFY_TARGETS) or [])
     result[CONF_APK_DATE] = options.get(CONF_APK_DATE) or None
     result[CONF_PANEL_ADMIN] = bool(options.get(CONF_PANEL_ADMIN, False))

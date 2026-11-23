@@ -74,6 +74,9 @@
       "last_price_per_litre": {
         "name": "Last price per litre"
       },
+      "cheapest_fuel_price": {
+        "name": "Cheapest fuel price"
+      },
       "total_fuel": {
         "name": "Total fuel"
       },

@@ -68,6 +68,18 @@ DESCRIPTIONS: tuple[GaragelogSensorDescription, ...] = (
         value_fn=lambda v: v["last_price"],
     ),
     GaragelogSensorDescription(
+        key="cheapest_fuel_price",
+        native_unit_of_measurement="€/L",
+        suggested_display_precision=3,
+        icon="mdi:gas-station",
+        value_fn=lambda v: (v["fuel_prices"]["cheapest"] or {}).get("price"),
+        attrs_fn=lambda v: {
+            "station": (v["fuel_prices"]["cheapest"] or {}).get("name"),
+            "prices": {s["name"]: s["price"] for s in v["fuel_prices"]["stations"]},
+            "gap": (v["fuel_prices"]["gap"] or {}).get("value"),
+        },
+    ),
+    GaragelogSensorDescription(
         key="total_fuel",
         device_class=SensorDeviceClass.VOLUME,
         native_unit_of_measurement=UnitOfVolume.LITERS,

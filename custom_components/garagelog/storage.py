@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from datetime import datetime, timedelta
 from typing import Any
 
 from homeassistant.core import HomeAssistant
@@ -10,7 +11,9 @@ from homeassistant.helpers.storage import Store
 
 from .const import (
     COLLECTIONS,
+    FUEL_PRICES,
     OIL_SAMPLES,
+    PRICE_RETENTION_DAYS,
     SAVE_DELAY,
     STORAGE_KEY_PREFIX,
     STORAGE_VERSION,
@@ -21,6 +24,7 @@ def _empty() -> dict[str, Any]:
     return {
         **{name: [] for name in COLLECTIONS},
         OIL_SAMPLES: [],
+        FUEL_PRICES: {},
         "rdw": {},
         "state": {"notified": {}, "tyre_alert": False},
     }
@@ -103,3 +107,27 @@ class VehicleStore:
     def clear_oil_samples(self) -> None:
         self.data[OIL_SAMPLES] = []
         self._save()
+
+    # fuel prices (only the changes are stored) ---------------------------------
+
+    def price_log(self, key: str) -> list[dict[str, Any]]:
+        return self.data[FUEL_PRICES].get(key, [])
+
+    def log_price(self, key: str, price: float, now: datetime) -> bool:
+        """Append ``price`` when it differs from the last logged one; prune entries older than a year."""
+        log = self.data[FUEL_PRICES].setdefault(key, [])
+        if log and log[-1]["price"] == price:
+            return False
+        log.append({"price": price, "at": now.isoformat()})
+        cutoff = (now - timedelta(days=PRICE_RETENTION_DAYS)).isoformat()
+        while len(log) > 1 and log[1]["at"] < cutoff:
+            log.pop(0)  # keep one entry before the cutoff: it is the price that was still in effect
+        self._save()
+        return True
+
+    def forget_prices(self, keep: set[str]) -> None:
+        stale = [k for k in self.data[FUEL_PRICES] if k not in keep]
+        for key in stale:
+            del self.data[FUEL_PRICES][key]
+        if stale:
+            self._save()

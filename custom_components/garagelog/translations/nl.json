@@ -74,6 +74,9 @@
       "last_price_per_litre": {
         "name": "Laatste prijs per liter"
       },
+      "cheapest_fuel_price": {
+        "name": "Goedkoopste brandstofprijs"
+      },
       "total_fuel": {
         "name": "Totaal getankt"
       },
