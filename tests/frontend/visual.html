@@ -1,0 +1,19 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>garagelog card visual</title>
+<style>body{font-family:Roboto,sans-serif;background:#f0f0f0;margin:0;padding:16px;width:420px;
+--primary-color:#03a9f4;--secondary-background-color:#f4f4f4;--card-background-color:#fff;--primary-text-color:#212121;--secondary-text-color:#727272;--divider-color:#ddd}
+ha-card{display:block;background:#fff;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.2)}</style></head>
+<body>
+<script src="../../custom_components/garagelog/www/garagelog-card.js"></script>
+<script>
+const card = document.createElement("garagelog-card");
+document.body.appendChild(card);
+card.setConfig({ entity: "sensor.x" });
+card.hass = { language: "nl", callService() {}, connection: { subscribeMessage: async (cb) => {
+  cb({ title: "Ford Kuga (AB123C)", plate: "AB-123-C", currency: "EUR", recent: {}, view: {
+    odometer: 52340, average_consumption: 6.4, last_consumption: 6.1, cost_month: 112.5, cost_year: 640, average_monthly_cost: 91.43,
+    apk_date: "2027-06-15", apk_days: 20, apk_due: true, next_service_days: 90, next_service_km: 4200, service_due: false,
+    days_since_wash: 45, wash_status: "soon", tyre_deviation: 0.31, tyre_low: true, oil_check_due: false,
+    oil_estimate: { km: 8000 }, rdw: { brand: "Ford", model: "Kuga" } } });
+  return () => {}; } } };
+</script></body></html>

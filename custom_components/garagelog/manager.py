@@ -78,6 +78,16 @@ def _number(state: Any) -> float | None:
         return None
 
 
+def _jsonable(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {k: _jsonable(v) for k, v in value.items()}
+    if isinstance(value, list | tuple):
+        return [_jsonable(v) for v in value]
+    if isinstance(value, date):
+        return value.isoformat()
+    return value
+
+
 class VehicleManager:
     """Owns the store and turns records plus source entities into values, events and messages."""
 
@@ -286,6 +296,22 @@ class VehicleManager:
     def _service_soon(nxt: dict[str, Any]) -> bool:
         return (nxt["days"] is not None and nxt["days"] <= SERVICE_SOON_DAYS) or (
             nxt["km"] is not None and nxt["km"] <= SERVICE_SOON_KM
+        )
+
+    def snapshot(self) -> dict[str, Any]:
+        """JSON-safe view for the dashboard card."""
+        recent = {
+            name: list(reversed(self.store.records(name)[-5:]))
+            for name in (REFUELS, SERVICES, WASHES, OIL_CHECKS)
+        }
+        return _jsonable(
+            {
+                "title": self.entry.title,
+                "plate": self.plate,
+                "currency": self.hass.config.currency,
+                "view": self.view,
+                "recent": recent,
+            }
         )
 
     # ------------------------------------------------------------------ reminders

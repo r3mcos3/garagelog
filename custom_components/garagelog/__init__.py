@@ -8,9 +8,7 @@ from typing import Any
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall, ServiceResponse, SupportsResponse
-from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import config_validation as cv
-from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 
 from . import calc
@@ -22,8 +20,11 @@ from .const import (
     SERVICES,
     WASHES,
 )
+from .frontend import async_setup_frontend
+from .lookup import manager_for_entity
 from .manager import VehicleManager
 from .storage import VehicleStore
+from .websocket_api import async_register_websocket
 
 PLATFORMS = ["sensor", "binary_sensor"]
 
@@ -84,18 +85,6 @@ SCHEMAS: dict[str, vol.Schema] = {
 }
 
 
-def _manager(hass: HomeAssistant, entity_id: str) -> VehicleManager:
-    entry = er.async_get(hass).async_get(entity_id)
-    config_entry = (
-        hass.config_entries.async_get_entry(entry.config_entry_id)
-        if entry and entry.config_entry_id
-        else None
-    )
-    if config_entry is None or config_entry.domain != DOMAIN or not hasattr(config_entry, "runtime_data"):
-        raise ServiceValidationError(f"{entity_id} is not a Garagelog entity")
-    return config_entry.runtime_data
-
-
 def _clean(data: dict[str, Any]) -> dict[str, Any]:
     out = {k: v for k, v in data.items() if v is not None}
     for key in ("date", "next_due_date"):
@@ -106,7 +95,7 @@ def _clean(data: dict[str, Any]) -> dict[str, Any]:
 
 async def _handle(call: ServiceCall) -> ServiceResponse:
     hass = call.hass
-    manager = _manager(hass, call.data["entity_id"])
+    manager = manager_for_entity(hass, call.data["entity_id"])
     data = {k: v for k, v in call.data.items() if k != "entity_id"}
     name = call.service
     today = dt_util.now().date().isoformat()
@@ -141,6 +130,8 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
         hass.services.async_register(
             DOMAIN, name, _handle, schema=schema, supports_response=SupportsResponse.OPTIONAL
         )
+    await async_setup_frontend(hass)
+    async_register_websocket(hass)
     return True
 
 
