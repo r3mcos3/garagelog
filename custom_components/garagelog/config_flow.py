@@ -78,11 +78,10 @@ def _clean_sources(user_input: dict[str, Any]) -> dict[str, Any]:
 
 
 def _number(min_: float, max_: float, step: float, unit: str | None = None) -> NumberSelector:
-    return NumberSelector(
-        NumberSelectorConfig(
-            min=min_, max=max_, step=step, mode=NumberSelectorMode.BOX, unit_of_measurement=unit
-        )
-    )
+    config = NumberSelectorConfig(min=min_, max=max_, step=step, mode=NumberSelectorMode.BOX)
+    if unit:
+        config["unit_of_measurement"] = unit
+    return NumberSelector(config)
 
 
 class GaragelogConfigFlow(ConfigFlow, domain=DOMAIN):
