@@ -125,5 +125,5 @@ def test_oil_estimate_needs_enough_data():
     assert calc.oil_estimate([], today=date(2026, 1, 1), odometer=None) is None
     one = [{"date": "2026-01-01", "odometer": 1, "life_pct": 100}]
     assert calc.oil_estimate(one, today=date(2026, 1, 1), odometer=None) is None
-    small = one + [{"date": "2026-01-10", "odometer": 500, "life_pct": 99}]
+    small = [*one, {"date": "2026-01-10", "odometer": 500, "life_pct": 99}]
     assert calc.oil_estimate(small, today=date(2026, 1, 10), odometer=500) is None

@@ -1,0 +1,420 @@
+"""Runtime of one vehicle: records, source entities, derived values, reminders."""
+
+from __future__ import annotations
+
+import logging
+from collections.abc import Callable
+from datetime import date, timedelta
+from typing import Any
+
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import Event, HomeAssistant, callback
+from homeassistant.helpers.dispatcher import async_dispatcher_send
+from homeassistant.helpers.event import async_track_state_change_event, async_track_time_interval
+from homeassistant.util import dt as dt_util
+
+from . import calc, rdw
+from .const import (
+    CONF_APK_DATE,
+    CONF_APK_DAYS,
+    CONF_FUEL_LEVEL_ENTITY,
+    CONF_NOTIFY_TARGETS,
+    CONF_ODOMETER_ENTITY,
+    CONF_OIL_CHECK_DAY,
+    CONF_OIL_LIFE_ENTITY,
+    CONF_PLATE,
+    CONF_SERVICE_INTERVAL_DAYS,
+    CONF_SERVICE_INTERVAL_KM,
+    CONF_TYRE_ENTITIES,
+    CONF_TYRE_TARGET,
+    CONF_TYRE_THRESHOLD,
+    CONF_WASH_DUE_DAYS,
+    CONF_WASH_SOON_DAYS,
+    DEFAULT_APK_DAYS,
+    DEFAULT_OIL_CHECK_DAY,
+    DEFAULT_SERVICE_INTERVAL_DAYS,
+    DEFAULT_SERVICE_INTERVAL_KM,
+    DEFAULT_TYRE_TARGET,
+    DEFAULT_TYRE_THRESHOLD,
+    DEFAULT_WASH_DUE_DAYS,
+    DEFAULT_WASH_SOON_DAYS,
+    DOMAIN,
+    EVENT_APK_DUE,
+    EVENT_OIL_CHANGE_DUE,
+    EVENT_OIL_CHECK_DUE,
+    EVENT_SERVICE_DUE,
+    EVENT_TYRE_PRESSURE,
+    EVENT_WASH_DUE,
+    OIL_CHANGE_SOON_DAYS,
+    OIL_CHANGE_SOON_KM,
+    OIL_CHECKS,
+    OIL_SAMPLES,
+    RDW_REFRESH_HOURS,
+    REFUELS,
+    SERVICE_OIL_CHANGE,
+    SERVICE_SOON_DAYS,
+    SERVICE_SOON_KM,
+    SERVICES,
+    TYRE_HYSTERESIS,
+    WASH_DUE,
+    WASH_SOON,
+    WASHES,
+)
+from .messages import message
+from .notify import async_send
+from .storage import VehicleStore
+
+_LOGGER = logging.getLogger(__name__)
+_SAMPLE_LIMIT = 500
+_UNAVAILABLE = ("unknown", "unavailable", "", None)
+
+
+def _number(state: Any) -> float | None:
+    if state is None or state.state in _UNAVAILABLE:
+        return None
+    try:
+        return float(state.state)
+    except ValueError:
+        return None
+
+
+class VehicleManager:
+    """Owns the store and turns records plus source entities into values, events and messages."""
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, store: VehicleStore) -> None:
+        self.hass = hass
+        self.entry = entry
+        self.store = store
+        self.view: dict[str, Any] = {}
+        self._unsubs: list[Callable[[], None]] = []
+        if not store.data["rdw"] and (seed := entry.data.get("rdw")):
+            store.set_rdw({**seed, "fetched_at": dt_util.utcnow().isoformat()})
+
+    # ------------------------------------------------------------------ config
+
+    def opt(self, key: str, default: Any) -> Any:
+        value = self.entry.options.get(key)
+        return default if value in (None, "") else value
+
+    @property
+    def plate(self) -> str:
+        return self.entry.data[CONF_PLATE]
+
+    @property
+    def signal(self) -> str:
+        return f"{DOMAIN}_update_{self.entry.entry_id}"
+
+    def _entity(self, key: str) -> str | None:
+        return self.entry.options.get(key) or self.entry.data.get(key) or None
+
+    def _tyre_entities(self) -> list[str]:
+        value = self.entry.options.get(CONF_TYRE_ENTITIES, self.entry.data.get(CONF_TYRE_ENTITIES))
+        return list(value or [])
+
+    def source_entities(self) -> list[str]:
+        singles = [self._entity(k) for k in (CONF_ODOMETER_ENTITY, CONF_FUEL_LEVEL_ENTITY, CONF_OIL_LIFE_ENTITY)]
+        return [e for e in [*singles, *self._tyre_entities()] if e]
+
+    # ------------------------------------------------------------------ lifecycle
+
+    async def async_start(self) -> None:
+        sources = self.source_entities()
+        if sources:
+            self._unsubs.append(async_track_state_change_event(self.hass, sources, self._on_source))
+        self._unsubs.append(
+            async_track_time_interval(self.hass, self._on_hour, timedelta(hours=1))
+        )
+        self._unsubs.append(
+            async_track_time_interval(self.hass, self._on_rdw_timer, timedelta(hours=RDW_REFRESH_HOURS))
+        )
+        self._record_oil_sample()
+        self.async_refresh()
+        await self.async_check()
+
+    async def async_stop(self) -> None:
+        for unsub in self._unsubs:
+            unsub()
+        self._unsubs.clear()
+        await self.store.async_flush()
+
+    @callback
+    def _on_hour(self, _now: Any) -> None:
+        self.hass.async_create_task(self._async_tick())
+
+    @callback
+    def _on_rdw_timer(self, _now: Any) -> None:
+        self.hass.async_create_task(self.async_refresh_rdw())
+
+    async def _async_tick(self) -> None:
+        self.async_refresh()
+        await self.async_check()
+
+    @callback
+    def _on_source(self, event: Event) -> None:
+        self.hass.async_create_task(self._async_source_changed(event.data["entity_id"]))
+
+    async def _async_source_changed(self, entity_id: str) -> None:
+        if entity_id == self._entity(CONF_OIL_LIFE_ENTITY):
+            self._record_oil_sample()
+        self.async_refresh()
+        await self.async_check()
+
+    # ------------------------------------------------------------------ source values
+
+    def _state_number(self, key: str) -> float | None:
+        entity = self._entity(key)
+        return _number(self.hass.states.get(entity)) if entity else None
+
+    def odometer(self) -> float | None:
+        value = self._state_number(CONF_ODOMETER_ENTITY)
+        if value is not None:
+            return round(value, 1)
+        logged = [
+            r["odometer"]
+            for name in (REFUELS, SERVICES, OIL_CHECKS)
+            for r in self.store.records(name)
+            if r.get("odometer") is not None
+        ]
+        return max(logged) if logged else None
+
+    def pressures_bar(self) -> dict[str, float]:
+        out: dict[str, float] = {}
+        for index, entity in enumerate(self._tyre_entities()):
+            state = self.hass.states.get(entity)
+            value = _number(state)
+            if value is not None and state is not None:
+                out[str(index)] = calc.to_bar(value, state.attributes.get("unit_of_measurement"))
+        return out
+
+    def oil_life(self) -> float | None:
+        return self._state_number(CONF_OIL_LIFE_ENTITY)
+
+    def _record_oil_sample(self) -> None:
+        life = self.oil_life()
+        if life is None:
+            return
+        today = dt_util.now().date().isoformat()
+        samples = self.store.data[OIL_SAMPLES]
+        sample = {"date": today, "odometer": self.odometer(), "life_pct": life}
+        if samples and samples[-1]["date"] == today:
+            samples[-1] = sample
+        else:
+            samples.append(sample)
+            del samples[:-_SAMPLE_LIMIT]
+        self.store.touch()
+
+    # ------------------------------------------------------------------ derived values
+
+    def apk_date(self) -> date | None:
+        return calc.parse_date(self.store.data["rdw"].get("apk_expiry")) or calc.parse_date(
+            self.entry.options.get(CONF_APK_DATE)
+        )
+
+    @callback
+    def async_refresh(self) -> None:
+        """Recompute every derived value and tell the entities."""
+        today = dt_util.now().date()
+        refuels, services = self.store.records(REFUELS), self.store.records(SERVICES)
+        washes, checks = self.store.records(WASHES), self.store.records(OIL_CHECKS)
+        odo = self.odometer()
+        segments = calc.consumption_segments(refuels)
+        last = segments[-1] if segments else None
+        costs = calc.all_costs(refuels, services, washes)
+        nxt = calc.next_service(
+            services,
+            interval_km=self.opt(CONF_SERVICE_INTERVAL_KM, DEFAULT_SERVICE_INTERVAL_KM),
+            interval_days=self.opt(CONF_SERVICE_INTERVAL_DAYS, DEFAULT_SERVICE_INTERVAL_DAYS),
+            today=today,
+            odometer=odo,
+        )
+        last_wash = max((calc.parse_date(w["date"]) for w in washes), default=None)
+        since_wash = calc.days_until(today, last_wash) if last_wash else None
+        pressures = self.pressures_bar()
+        target = float(self.opt(CONF_TYRE_TARGET, DEFAULT_TYRE_TARGET))
+        threshold = float(self.opt(CONF_TYRE_THRESHOLD, DEFAULT_TYRE_THRESHOLD))
+        deviation = calc.tyre_deviation(pressures, target)
+        estimate = calc.oil_estimate(self.store.data[OIL_SAMPLES], today=today, odometer=odo)
+        apk = self.apk_date()
+        apk_days = calc.days_until(apk, today)
+        last_refuel = refuels[-1] if refuels else None
+        self.view = {
+            "odometer": odo,
+            "last_consumption": last["l_per_100km"] if last else None,
+            "average_consumption": calc.average_consumption(segments),
+            "last_price": last_refuel.get("price_per_litre") if last_refuel else None,
+            "total_fuel": round(sum(r["liters"] for r in refuels), 2) if refuels else None,
+            "total_cost": calc.cost_total(costs) if costs else None,
+            "cost_year": calc.cost_in_year(costs, today.year) if costs else None,
+            "cost_month": calc.cost_in_month(costs, today.year, today.month) if costs else None,
+            "average_monthly_cost": calc.average_monthly_cost(costs, today),
+            "apk_date": apk,
+            "apk_days": apk_days,
+            "apk_due": apk_days is not None and apk_days <= self.opt(CONF_APK_DAYS, DEFAULT_APK_DAYS),
+            "next_service_date": nxt["due_date"],
+            "next_service_odometer": nxt["due_odometer"],
+            "next_service_days": nxt["days"],
+            "next_service_km": nxt["km"],
+            "service_due": self._service_soon(nxt),
+            "last_wash": last_wash,
+            "days_since_wash": since_wash,
+            "wash_status": calc.wash_status(
+                since_wash,
+                self.opt(CONF_WASH_SOON_DAYS, DEFAULT_WASH_SOON_DAYS),
+                self.opt(CONF_WASH_DUE_DAYS, DEFAULT_WASH_DUE_DAYS),
+            ),
+            "tyre_pressures": {k: round(v, 2) for k, v in pressures.items()},
+            "tyre_target": target,
+            "tyre_deviation": deviation,
+            "tyre_low": deviation is not None and deviation >= threshold,
+            "oil_check_due": calc.oil_check_due(
+                today, self.opt(CONF_OIL_CHECK_DAY, DEFAULT_OIL_CHECK_DAY), checks
+            ),
+            "oil_life": self.oil_life(),
+            "oil_estimate": estimate,
+            "rdw": self.store.data["rdw"],
+            "last_refuel": last_refuel,
+            "records": {
+                "refuels": len(refuels),
+                "services": len(services),
+                "washes": len(washes),
+                "oil_checks": len(checks),
+            },
+        }
+        async_dispatcher_send(self.hass, self.signal)
+
+    @staticmethod
+    def _service_soon(nxt: dict[str, Any]) -> bool:
+        return (nxt["days"] is not None and nxt["days"] <= SERVICE_SOON_DAYS) or (
+            nxt["km"] is not None and nxt["km"] <= SERVICE_SOON_KM
+        )
+
+    # ------------------------------------------------------------------ reminders
+
+    async def _async_notify(self, event: str, kind: str, data: dict[str, Any]) -> None:
+        payload = {"entry_id": self.entry.entry_id, "plate": self.plate, "vehicle": self.entry.title, **data}
+        self.hass.bus.async_fire(event, payload)
+        title, text = message(self.hass.config.language, kind, payload)
+        targets = list(self.entry.options.get(CONF_NOTIFY_TARGETS) or [])
+        if targets:
+            await async_send(self.hass, targets, title, text)
+
+    async def async_check(self) -> None:
+        """Send every reminder that is due and has not been sent yet (idempotent, persisted)."""
+        notified = self.store.state["notified"]
+        view, changed = self.view, False
+        if not view:
+            return
+
+        apk = view["apk_date"]
+        if apk and view["apk_due"] and notified.get("apk") != apk.isoformat():
+            notified["apk"] = apk.isoformat()
+            changed = True
+            await self._async_notify(
+                EVENT_APK_DUE, "apk", {"apk_date": apk.isoformat(), "days": view["apk_days"]}
+            )
+
+        if view["service_due"]:
+            key = f"{view['next_service_date']}|{view['next_service_odometer']}"
+            if notified.get("service") != key:
+                notified["service"] = key
+                changed = True
+                await self._async_notify(
+                    EVENT_SERVICE_DUE,
+                    "service",
+                    {"days": view["next_service_days"], "km": view["next_service_km"]},
+                )
+
+        status, last_wash = view["wash_status"], view["last_wash"]
+        if last_wash and status in (WASH_SOON, WASH_DUE):
+            seen = notified.setdefault("wash", {})
+            if seen.get("date") != last_wash.isoformat():
+                seen.clear()
+                seen["date"] = last_wash.isoformat()
+            if status not in seen.setdefault("levels", []):
+                seen["levels"].append(status)
+                changed = True
+                await self._async_notify(
+                    EVENT_WASH_DUE,
+                    "wash",
+                    {"status": status, "days": view["days_since_wash"]},
+                )
+
+        month = dt_util.now().strftime("%Y-%m")
+        if view["oil_check_due"] and notified.get("oil_check") != month:
+            notified["oil_check"] = month
+            changed = True
+            await self._async_notify(EVENT_OIL_CHECK_DUE, "oil_check", {"month": month})
+
+        est = view["oil_estimate"]
+        if est:
+            today = dt_util.now().date()
+            days = calc.days_until(est["date"], today)
+            soon = (est["km"] is not None and est["km"] <= OIL_CHANGE_SOON_KM) or (
+                days is not None and days <= OIL_CHANGE_SOON_DAYS
+            )
+            if soon and not notified.get("oil_change"):  # once per oil change cycle
+                notified["oil_change"] = True
+                changed = True
+                await self._async_notify(
+                    EVENT_OIL_CHANGE_DUE,
+                    "oil_change",
+                    {"km": est["km"], "date": est["date"].isoformat() if est["date"] else None, "estimate": True},
+                )
+
+        changed |= await self._async_check_tyres()
+        if changed:
+            self.store.touch()
+
+    async def _async_check_tyres(self) -> bool:
+        deviation = self.view.get("tyre_deviation")
+        if deviation is None:
+            return False
+        threshold = float(self.opt(CONF_TYRE_THRESHOLD, DEFAULT_TYRE_THRESHOLD))
+        state = self.store.state
+        if deviation >= threshold and not state["tyre_alert"]:
+            state["tyre_alert"] = True
+            await self._async_notify(
+                EVENT_TYRE_PRESSURE,
+                "tyre",
+                {"deviation": deviation, "target": self.view["tyre_target"], "pressures": self.view["tyre_pressures"]},
+            )
+            return True
+        if deviation <= threshold - TYRE_HYSTERESIS and state["tyre_alert"]:
+            state["tyre_alert"] = False
+            return True
+        return False
+
+    # ------------------------------------------------------------------ records
+
+    async def _async_after_change(self, reset_oil: bool = False) -> None:
+        if reset_oil:
+            self.store.clear_oil_samples()
+            self._record_oil_sample()
+            self.store.state["notified"].pop("oil_change", None)
+        self.async_refresh()
+        await self.async_check()
+
+    async def async_add(self, collection: str, record: dict[str, Any]) -> dict[str, Any]:
+        stored = self.store.add(collection, record)
+        await self._async_after_change(
+            reset_oil=collection == SERVICES and record.get("type") == SERVICE_OIL_CHANGE
+        )
+        return stored
+
+    async def async_remove_record(self, collection: str, record_id: str) -> bool:
+        removed = self.store.remove(collection, record_id)
+        if removed:
+            await self._async_after_change()
+        return removed
+
+    async def async_refresh_rdw(self) -> bool:
+        try:
+            found = await rdw.async_lookup(self.hass, self.plate)
+        except rdw.RdwError as err:
+            _LOGGER.debug("RDW refresh failed for %s: %s", self.plate, err)
+            return False
+        if not found:
+            return False
+        self.store.set_rdw({**found, "fetched_at": dt_util.utcnow().isoformat()})
+        await self._async_after_change()
+        return True

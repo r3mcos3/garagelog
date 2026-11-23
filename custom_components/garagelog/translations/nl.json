@@ -1,0 +1,298 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Auto toevoegen",
+        "description": "Vul het kenteken in. Merk, type en APK-datum worden opgezocht bij de RDW (open data).",
+        "data": {
+          "plate": "Kenteken",
+          "name": "Naam (optioneel)",
+          "skip_rdw": "RDW-opzoeking overslaan"
+        }
+      },
+      "sources": {
+        "title": "Bronentiteiten",
+        "description": "Optioneel. Kies de entiteiten die je auto al levert (bijvoorbeeld via FordConnect). Al het andere kun je met de hand loggen.",
+        "data": {
+          "odometer_entity": "Kilometerstand",
+          "fuel_level_entity": "Brandstofniveau",
+          "tyre_entities": "Bandenspanningen",
+          "oil_life_entity": "Olieleven (%)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "De RDW is niet bereikbaar. Probeer het later of sla de RDW-opzoeking over.",
+      "rdw_not_found": "De RDW kent dit kenteken niet.",
+      "invalid_plate": "Vul een kenteken in."
+    },
+    "abort": {
+      "already_configured": "Deze auto is al toegevoegd."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Instellingen",
+        "data": {
+          "odometer_entity": "Kilometerstand",
+          "fuel_level_entity": "Brandstofniveau",
+          "tyre_entities": "Bandenspanningen",
+          "oil_life_entity": "Olieleven (%)",
+          "notify_targets": "Meldingsdoelen",
+          "tyre_target_bar": "Doelbandenspanning",
+          "tyre_threshold_bar": "Drempel bandenspanning",
+          "wash_soon_days": "Wassen binnenkort na (dagen)",
+          "wash_due_days": "Wassen nodig na (dagen)",
+          "apk_days": "APK-herinnering (dagen vooraf)",
+          "oil_check_day": "Olie peilen vanaf dag van de maand",
+          "service_interval_km": "Onderhoudsinterval (km)",
+          "service_interval_days": "Onderhoudsinterval (dagen)",
+          "apk_date": "APK-datum (alleen zonder RDW)"
+        },
+        "data_description": {
+          "tyre_entities": "Eén sensor per band (kPa, bar of psi).",
+          "notify_targets": "Optioneel. Bijvoorbeeld Telegram of je telefoon.",
+          "tyre_threshold_bar": "Er komt één melding als een band zoveel afwijkt van de doelspanning."
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "odometer": {
+        "name": "Kilometerstand"
+      },
+      "last_consumption": {
+        "name": "Laatste verbruik"
+      },
+      "average_consumption": {
+        "name": "Gemiddeld verbruik"
+      },
+      "last_price_per_litre": {
+        "name": "Laatste prijs per liter"
+      },
+      "total_fuel": {
+        "name": "Totaal getankt"
+      },
+      "total_cost": {
+        "name": "Totale kosten"
+      },
+      "cost_this_year": {
+        "name": "Kosten dit jaar"
+      },
+      "cost_this_month": {
+        "name": "Kosten deze maand"
+      },
+      "average_monthly_cost": {
+        "name": "Gemiddelde kosten per maand"
+      },
+      "apk_date": {
+        "name": "APK-vervaldatum"
+      },
+      "apk_days": {
+        "name": "APK dagen resterend"
+      },
+      "next_service_days": {
+        "name": "Volgende beurt over (dagen)"
+      },
+      "next_service_km": {
+        "name": "Volgende beurt over (km)"
+      },
+      "days_since_wash": {
+        "name": "Dagen sinds wassen"
+      },
+      "wash_status": {
+        "name": "Wasstatus",
+        "state": {
+          "ok": "OK",
+          "soon": "Binnenkort",
+          "due": "Nodig"
+        }
+      },
+      "tyre_deviation": {
+        "name": "Bandenspanning afwijking"
+      },
+      "oil_change_estimate_km": {
+        "name": "Geschatte olieverversing over (km)"
+      },
+      "oil_change_estimate_date": {
+        "name": "Geschatte datum olieverversing"
+      }
+    },
+    "binary_sensor": {
+      "apk_due": {
+        "name": "APK aan de beurt"
+      },
+      "service_due": {
+        "name": "Beurt aan de beurt"
+      },
+      "wash_due": {
+        "name": "Wassen nodig"
+      },
+      "tyre_pressure_low": {
+        "name": "Bandenspanning afwijkend"
+      },
+      "oil_check_due": {
+        "name": "Olie peilen"
+      }
+    }
+  },
+  "selector": {
+    "service_type": {
+      "options": {
+        "maintenance": "Onderhoudsbeurt",
+        "oil_change": "Olie verversen",
+        "tyres": "Banden",
+        "brakes": "Remmen",
+        "apk": "APK",
+        "repair": "Reparatie",
+        "other": "Overig"
+      }
+    },
+    "collection": {
+      "options": {
+        "refuels": "Tankbeurten",
+        "services": "Onderhoud",
+        "washes": "Wasbeurten",
+        "oil_checks": "Olie-peilingen"
+      }
+    }
+  },
+  "services": {
+    "log_refuel": {
+      "name": "Tankbeurt loggen",
+      "description": "Voeg een tankbeurt toe; kosten of prijs per liter wordt uit de ander berekend.",
+      "fields": {
+        "entity_id": {
+          "name": "Voertuig",
+          "description": "Een willekeurige Garagelog-entiteit van de auto."
+        },
+        "liters": {
+          "name": "Liters"
+        },
+        "total_cost": {
+          "name": "Totaalbedrag"
+        },
+        "price_per_litre": {
+          "name": "Prijs per liter"
+        },
+        "odometer": {
+          "name": "Kilometerstand",
+          "description": "Standaard de huidige kilometerstand."
+        },
+        "full": {
+          "name": "Vol getankt",
+          "description": "Nodig om het verbruik te berekenen."
+        },
+        "date": {
+          "name": "Datum"
+        },
+        "note": {
+          "name": "Notitie"
+        }
+      }
+    },
+    "log_service": {
+      "name": "Onderhoud loggen",
+      "description": "Voeg een beurt of reparatie toe.",
+      "fields": {
+        "entity_id": {
+          "name": "Voertuig",
+          "description": "Een willekeurige Garagelog-entiteit van de auto."
+        },
+        "type": {
+          "name": "Soort"
+        },
+        "cost": {
+          "name": "Kosten"
+        },
+        "odometer": {
+          "name": "Kilometerstand"
+        },
+        "next_due_date": {
+          "name": "Volgende beurt (datum)"
+        },
+        "next_due_odometer": {
+          "name": "Volgende beurt (km-stand)"
+        },
+        "date": {
+          "name": "Datum"
+        },
+        "note": {
+          "name": "Notitie"
+        }
+      }
+    },
+    "log_wash": {
+      "name": "Wasbeurt loggen",
+      "description": "Voeg een wasbeurt toe.",
+      "fields": {
+        "entity_id": {
+          "name": "Voertuig",
+          "description": "Een willekeurige Garagelog-entiteit van de auto."
+        },
+        "cost": {
+          "name": "Kosten"
+        },
+        "date": {
+          "name": "Datum"
+        },
+        "note": {
+          "name": "Notitie"
+        }
+      }
+    },
+    "log_oil_check": {
+      "name": "Olie-peiling loggen",
+      "description": "Leg vast dat je de olie hebt gepeild.",
+      "fields": {
+        "entity_id": {
+          "name": "Voertuig",
+          "description": "Een willekeurige Garagelog-entiteit van de auto."
+        },
+        "level": {
+          "name": "Peil"
+        },
+        "added_litres": {
+          "name": "Bijgevuld (liters)"
+        },
+        "odometer": {
+          "name": "Kilometerstand"
+        },
+        "date": {
+          "name": "Datum"
+        },
+        "note": {
+          "name": "Notitie"
+        }
+      }
+    },
+    "remove_record": {
+      "name": "Registratie verwijderen",
+      "description": "Verwijder een registratie op id (het id staat in het antwoord van de log-services).",
+      "fields": {
+        "entity_id": {
+          "name": "Voertuig",
+          "description": "Een willekeurige Garagelog-entiteit van de auto."
+        },
+        "collection": {
+          "name": "Soort"
+        },
+        "id": {
+          "name": "Id"
+        }
+      }
+    },
+    "refresh_rdw": {
+      "name": "RDW-gegevens verversen",
+      "description": "Zoek de auto opnieuw op bij de RDW (APK-datum).",
+      "fields": {
+        "entity_id": {
+          "name": "Voertuig",
+          "description": "Een willekeurige Garagelog-entiteit van de auto."
+        }
+      }
+    }
+  }
+}

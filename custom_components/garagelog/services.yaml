@@ -1,0 +1,103 @@
+log_refuel:
+  fields:
+    entity_id: &entity
+      required: true
+      selector:
+        entity:
+          integration: garagelog
+    liters:
+      required: true
+      selector:
+        number: {min: 0.1, max: 500, step: 0.01, mode: box, unit_of_measurement: L}
+    total_cost:
+      selector:
+        number: {min: 0, max: 5000, step: 0.01, mode: box}
+    price_per_litre:
+      selector:
+        number: {min: 0, max: 10, step: 0.001, mode: box}
+    odometer:
+      selector:
+        number: {min: 0, max: 2000000, step: 1, mode: box, unit_of_measurement: km}
+    full:
+      default: true
+      selector:
+        boolean:
+    date:
+      selector:
+        date:
+    note:
+      selector:
+        text:
+log_service:
+  fields:
+    entity_id: *entity
+    type:
+      default: maintenance
+      selector:
+        select:
+          translation_key: service_type
+          options: [maintenance, oil_change, tyres, brakes, apk, repair, other]
+    cost:
+      selector:
+        number: {min: 0, max: 50000, step: 0.01, mode: box}
+    odometer:
+      selector:
+        number: {min: 0, max: 2000000, step: 1, mode: box, unit_of_measurement: km}
+    next_due_date:
+      selector:
+        date:
+    next_due_odometer:
+      selector:
+        number: {min: 0, max: 2000000, step: 1, mode: box, unit_of_measurement: km}
+    date:
+      selector:
+        date:
+    note:
+      selector:
+        text:
+log_wash:
+  fields:
+    entity_id: *entity
+    cost:
+      selector:
+        number: {min: 0, max: 500, step: 0.01, mode: box}
+    date:
+      selector:
+        date:
+    note:
+      selector:
+        text:
+log_oil_check:
+  fields:
+    entity_id: *entity
+    level:
+      selector:
+        text:
+    added_litres:
+      selector:
+        number: {min: 0, max: 10, step: 0.1, mode: box, unit_of_measurement: L}
+    odometer:
+      selector:
+        number: {min: 0, max: 2000000, step: 1, mode: box, unit_of_measurement: km}
+    date:
+      selector:
+        date:
+    note:
+      selector:
+        text:
+remove_record:
+  fields:
+    entity_id: *entity
+    collection:
+      required: true
+      selector:
+        select:
+          translation_key: collection
+          options: [refuels, services, washes, oil_checks]
+    id:
+      required: true
+      selector:
+        text:
+refresh_rdw:
+  fields:
+    entity_id: *entity

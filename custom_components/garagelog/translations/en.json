@@ -1,0 +1,298 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Add a vehicle",
+        "description": "Enter the licence plate. The vehicle details and the APK date are looked up at the RDW (open data).",
+        "data": {
+          "plate": "Licence plate",
+          "name": "Name (optional)",
+          "skip_rdw": "Skip the RDW lookup"
+        }
+      },
+      "sources": {
+        "title": "Source entities",
+        "description": "Optional. Pick the entities your car already provides (for example from FordConnect). Everything else can be logged by hand.",
+        "data": {
+          "odometer_entity": "Odometer",
+          "fuel_level_entity": "Fuel level",
+          "tyre_entities": "Tyre pressures",
+          "oil_life_entity": "Oil life (%)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Could not reach the RDW. Try again, or skip the RDW lookup.",
+      "rdw_not_found": "The RDW does not know this licence plate.",
+      "invalid_plate": "Enter a licence plate."
+    },
+    "abort": {
+      "already_configured": "This vehicle is already added."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Settings",
+        "data": {
+          "odometer_entity": "Odometer",
+          "fuel_level_entity": "Fuel level",
+          "tyre_entities": "Tyre pressures",
+          "oil_life_entity": "Oil life (%)",
+          "notify_targets": "Notification targets",
+          "tyre_target_bar": "Target tyre pressure",
+          "tyre_threshold_bar": "Tyre pressure threshold",
+          "wash_soon_days": "Wash soon after (days)",
+          "wash_due_days": "Wash needed after (days)",
+          "apk_days": "APK reminder (days before)",
+          "oil_check_day": "Check oil from day of month",
+          "service_interval_km": "Service interval (km)",
+          "service_interval_days": "Service interval (days)",
+          "apk_date": "APK date (only without RDW)"
+        },
+        "data_description": {
+          "tyre_entities": "One sensor per tyre (kPa, bar or psi).",
+          "notify_targets": "Optional. For example Telegram or your phone.",
+          "tyre_threshold_bar": "A message is sent once when a tyre deviates this much from the target."
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "odometer": {
+        "name": "Odometer"
+      },
+      "last_consumption": {
+        "name": "Last consumption"
+      },
+      "average_consumption": {
+        "name": "Average consumption"
+      },
+      "last_price_per_litre": {
+        "name": "Last price per litre"
+      },
+      "total_fuel": {
+        "name": "Total fuel"
+      },
+      "total_cost": {
+        "name": "Total cost"
+      },
+      "cost_this_year": {
+        "name": "Cost this year"
+      },
+      "cost_this_month": {
+        "name": "Cost this month"
+      },
+      "average_monthly_cost": {
+        "name": "Average monthly cost"
+      },
+      "apk_date": {
+        "name": "APK expiry date"
+      },
+      "apk_days": {
+        "name": "APK days remaining"
+      },
+      "next_service_days": {
+        "name": "Next service in (days)"
+      },
+      "next_service_km": {
+        "name": "Next service in (km)"
+      },
+      "days_since_wash": {
+        "name": "Days since wash"
+      },
+      "wash_status": {
+        "name": "Wash status",
+        "state": {
+          "ok": "OK",
+          "soon": "Soon",
+          "due": "Due"
+        }
+      },
+      "tyre_deviation": {
+        "name": "Tyre pressure deviation"
+      },
+      "oil_change_estimate_km": {
+        "name": "Estimated oil change in (km)"
+      },
+      "oil_change_estimate_date": {
+        "name": "Estimated oil change date"
+      }
+    },
+    "binary_sensor": {
+      "apk_due": {
+        "name": "APK due"
+      },
+      "service_due": {
+        "name": "Service due"
+      },
+      "wash_due": {
+        "name": "Wash needed"
+      },
+      "tyre_pressure_low": {
+        "name": "Tyre pressure off"
+      },
+      "oil_check_due": {
+        "name": "Check oil"
+      }
+    }
+  },
+  "selector": {
+    "service_type": {
+      "options": {
+        "maintenance": "Maintenance",
+        "oil_change": "Oil change",
+        "tyres": "Tyres",
+        "brakes": "Brakes",
+        "apk": "APK",
+        "repair": "Repair",
+        "other": "Other"
+      }
+    },
+    "collection": {
+      "options": {
+        "refuels": "Refuels",
+        "services": "Services",
+        "washes": "Washes",
+        "oil_checks": "Oil checks"
+      }
+    }
+  },
+  "services": {
+    "log_refuel": {
+      "name": "Log a refuel",
+      "description": "Add a refuel; cost or price per litre is derived from the other.",
+      "fields": {
+        "entity_id": {
+          "name": "Vehicle",
+          "description": "Any Garagelog entity of the vehicle."
+        },
+        "liters": {
+          "name": "Litres"
+        },
+        "total_cost": {
+          "name": "Total cost"
+        },
+        "price_per_litre": {
+          "name": "Price per litre"
+        },
+        "odometer": {
+          "name": "Odometer",
+          "description": "Defaults to the current odometer."
+        },
+        "full": {
+          "name": "Full tank",
+          "description": "Needed to calculate consumption."
+        },
+        "date": {
+          "name": "Date"
+        },
+        "note": {
+          "name": "Note"
+        }
+      }
+    },
+    "log_service": {
+      "name": "Log maintenance",
+      "description": "Add a service or repair entry.",
+      "fields": {
+        "entity_id": {
+          "name": "Vehicle",
+          "description": "Any Garagelog entity of the vehicle."
+        },
+        "type": {
+          "name": "Type"
+        },
+        "cost": {
+          "name": "Cost"
+        },
+        "odometer": {
+          "name": "Odometer"
+        },
+        "next_due_date": {
+          "name": "Next due date"
+        },
+        "next_due_odometer": {
+          "name": "Next due odometer"
+        },
+        "date": {
+          "name": "Date"
+        },
+        "note": {
+          "name": "Note"
+        }
+      }
+    },
+    "log_wash": {
+      "name": "Log a wash",
+      "description": "Add a car wash.",
+      "fields": {
+        "entity_id": {
+          "name": "Vehicle",
+          "description": "Any Garagelog entity of the vehicle."
+        },
+        "cost": {
+          "name": "Cost"
+        },
+        "date": {
+          "name": "Date"
+        },
+        "note": {
+          "name": "Note"
+        }
+      }
+    },
+    "log_oil_check": {
+      "name": "Log an oil check",
+      "description": "Record that you checked the oil.",
+      "fields": {
+        "entity_id": {
+          "name": "Vehicle",
+          "description": "Any Garagelog entity of the vehicle."
+        },
+        "level": {
+          "name": "Level"
+        },
+        "added_litres": {
+          "name": "Litres added"
+        },
+        "odometer": {
+          "name": "Odometer"
+        },
+        "date": {
+          "name": "Date"
+        },
+        "note": {
+          "name": "Note"
+        }
+      }
+    },
+    "remove_record": {
+      "name": "Remove a record",
+      "description": "Remove a logged entry by id (the id is returned by the log services).",
+      "fields": {
+        "entity_id": {
+          "name": "Vehicle",
+          "description": "Any Garagelog entity of the vehicle."
+        },
+        "collection": {
+          "name": "Kind"
+        },
+        "id": {
+          "name": "Id"
+        }
+      }
+    },
+    "refresh_rdw": {
+      "name": "Refresh RDW data",
+      "description": "Look up the vehicle at the RDW again (APK date).",
+      "fields": {
+        "entity_id": {
+          "name": "Vehicle",
+          "description": "Any Garagelog entity of the vehicle."
+        }
+      }
+    }
+  }
+}

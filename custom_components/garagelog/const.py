@@ -30,6 +30,7 @@ CONF_APK_DAYS = "apk_days"
 CONF_OIL_CHECK_DAY = "oil_check_day"
 CONF_SERVICE_INTERVAL_KM = "service_interval_km"
 CONF_SERVICE_INTERVAL_DAYS = "service_interval_days"
+CONF_APK_DATE = "apk_date"
 
 DEFAULT_TYRE_TARGET = 2.5
 DEFAULT_TYRE_THRESHOLD = 0.2
