@@ -353,11 +353,20 @@ class VehicleManager:
             "title": self.entry.title,
             "plate": self.plate,
             "currency": self.hass.config.currency,
+            "now": dt_util.now().isoformat(),
             "view": self.view,
             "recent": {n: list(reversed(self.store.records(n)[-5:])) for n in names},
         }
         if full:
             data["records"] = {n: list(reversed(self.store.records(n))) for n in names}
+            per_fill = {
+                (seg["date"], seg["odometer"]): seg["l_per_100km"]
+                for seg in calc.consumption_segments(self.store.records(REFUELS))
+            }
+            data["records"][REFUELS] = [
+                {**r, "l_per_100km": per_fill.get((r["date"], r.get("odometer")))}
+                for r in data["records"][REFUELS]
+            ]
             data["monthly"] = calc.monthly_costs(
                 self.store.records(REFUELS), self.store.records(SERVICES), self.store.records(WASHES)
             )
