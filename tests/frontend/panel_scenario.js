@@ -9,7 +9,7 @@
     const unsubs = [];
     const hass = {
       language: "en", user: { is_admin: true },
-      states: { "sensor.car_odometer": {}, "sensor.car_fuel": {}, "light.x": {} },
+      states: { "sensor.car_odometer": {}, "sensor.car_fuel": {}, "light.x": {}, "sensor.euro95_poppel": { state: "1.819", attributes: { friendly_name: "Euro95 Poppel" } }, "sensor.temperature": { state: "21.5", attributes: {} } },
       connection: {
         sendMessagePromise: async (msg) => {
           sent.push(msg);
@@ -163,7 +163,8 @@
     const sf = () => $("#settings-form");
     R.settings_prefilled = sf().elements.tyre_target_bar.value === "2.5" && sf().elements.odometer_entity.value === "sensor.car_odometer" && sf().elements.tyre_0.value === "sensor.t0" && sf().elements.tyre_3.value === "";
     R.targets = $$(".targets input").length === 2 && $$(".targets input:checked").length === 1 && $(".targets").textContent.includes("Telegram");
-    R.datalist = $$("#entlist option").length === 2;
+    R.datalist = $$("#entlist option").length === 4;
+    R.price_datalist = $$("#pricelist option").length === 1 && $("#pricelist option").value === "sensor.euro95_poppel" && $("#pricelist option").label === "Euro95 Poppel" && sf().elements.fs_entity_0.getAttribute("list") === "pricelist";
     sf().elements.tyre_target_bar.value = "2.4";
     sf().elements.tyre_target_bar.dispatchEvent(new Event("input", { bubbles: true }));
     sf().elements.apk_date.value = "99-99-2026";

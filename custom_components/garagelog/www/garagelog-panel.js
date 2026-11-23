@@ -600,7 +600,11 @@
       const t = this.t, st = this._snap.settings, dis = this.isAdmin ? "" : "disabled";
       const num = (k, label, val, step = "1") => `<label class="field">${esc(label)}<input type="number" step="${step}" name="${k}" value="${esc(val ?? "")}" ${dis}></label>`;
       const ents = this._hass ? Object.keys(this._hass.states || {}).filter((e) => /^(sensor|number|input_number)\./.test(e)).sort() : [];
-      const list = `<datalist id="entlist">${ents.map((e) => `<option value="${esc(e)}">`).join("")}</datalist>`;
+      // price sensors: only entities that hold a plausible price per litre, labelled with their name
+      const states = (this._hass && this._hass.states) || {};
+      const prices = ents.filter((e) => { const v = parseFloat(states[e] && states[e].state); return /^(sensor|input_number)\./.test(e) && v >= 0.3 && v <= 10; });
+      const label = (e) => esc((states[e] && states[e].attributes && states[e].attributes.friendly_name) || "");
+      const list = `<datalist id="entlist">${ents.map((e) => `<option value="${esc(e)}">`).join("")}</datalist><datalist id="pricelist">${prices.map((e) => `<option value="${esc(e)}" label="${label(e)}">`).join("")}</datalist>`;
       const ent = (k, label, val) => `<label class="field">${esc(label)}<input type="text" list="entlist" name="${k}" value="${esc(val || "")}" ${dis} autocomplete="off"></label>`;
       const keep = new Set(st.notify_targets);
       const targets = this._notifyTargets.length
@@ -608,7 +612,7 @@
         : `<div class="empty">${esc(t.s_notify_none)}</div>`;
       const tyres = [0, 1, 2, 3].map((i) => ent(`tyre_${i}`, `${t.s_tyre} ${i + 1}`, st.tyre_entities[i])).join("");
       const stationList = st.fuel_stations || [];
-      const stationRows = Array.from({ length: 6 }, (_, i) => `<div class="fprow"><input type="text" name="fs_name_${i}" placeholder="${esc(t.s_station_name)}" value="${esc(stationList[i]?.name || "")}" ${dis} maxlength="40"><input type="text" list="entlist" name="fs_entity_${i}" placeholder="${esc(t.s_station_entity)}" value="${esc(stationList[i]?.entity_id || "")}" ${dis} autocomplete="off"></div>`).join("");
+      const stationRows = Array.from({ length: 6 }, (_, i) => `<div class="fprow"><input type="text" name="fs_name_${i}" placeholder="${esc(t.s_station_name)}" value="${esc(stationList[i]?.name || "")}" ${dis} maxlength="40"><input type="text" list="pricelist" name="fs_entity_${i}" placeholder="${esc(t.s_station_entity)}" value="${esc(stationList[i]?.entity_id || "")}" ${dis} autocomplete="off"></div>`).join("");
       return `<form id="settings-form" class="settings">
         ${this.isAdmin ? "" : `<div class="alert">${esc(t.s_admin_only)}</div>`}
         <div class="card"><h2>${esc(t.s_notify)}</h2><div class="targets">${targets}</div></div>
