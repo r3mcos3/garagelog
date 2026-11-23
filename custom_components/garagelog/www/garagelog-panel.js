@@ -253,7 +253,10 @@
         .badge { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 8px; } .badge.up { color: var(--error-color, #db4437); background: color-mix(in srgb, var(--error-color, #db4437) 12%, transparent); } .badge.down { color: var(--success-color, #43a047); background: color-mix(in srgb, var(--success-color, #43a047) 12%, transparent); }
         .topups { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; margin-top: 10px; } .topups .cost { font-size: 22px; font-weight: 500; } .topups .best .cost { color: var(--success-color, #43a047); }
         .tips p { margin: 6px 0; font-size: 14px; } details.hist summary { cursor: pointer; padding: 6px 0; font-weight: 500; }
-        .fprow { display: grid; grid-template-columns: 1fr 1.4fr; gap: 8px; margin-bottom: 8px; }
+        .fprow { display: grid; grid-template-columns: 1fr 1.4fr; gap: 8px; margin: 0 0 8px; }
+        .fprow input { min-width: 0; width: 100%; box-sizing: border-box; }
+        .fprow:first-of-type { margin-top: 10px; }
+        .narrow .fprow { grid-template-columns: 1fr; gap: 6px; margin-bottom: 14px; }
         .wheels { display: grid; grid-template-columns: 1fr auto 1fr; grid-template-areas: "fl car fr" "rl car rr"; align-items: center; gap: 14px 12px; max-width: 380px; margin: 0 auto; }
         .wheels .tile { text-align: center; border-left: 0; border: 1px solid var(--divider-color, #ddd); border-radius: 12px; padding: 10px 6px; }
         .wheels .tile.ok { border-color: var(--success-color, #43a047); } .wheels .tile.bad { border-color: var(--warning-color, #ffa000); background: color-mix(in srgb, var(--warning-color, #ffa000) 12%, transparent); }
