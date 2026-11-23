@@ -29,7 +29,7 @@
       f_note: "Note", f_type: "Type", f_cost: "Cost", f_next_due_date: "Next due date", f_next_due_odometer: "Next due at (km)", f_level: "Level",
       f_added_litres: "Litres added", f_l100: "L/100 km",
       type_maintenance: "Maintenance", type_oil_change: "Oil change", type_tyres: "Tyres", type_brakes: "Brakes", type_apk: "APK", type_repair: "Repair", type_other: "Other",
-      tyres_live: "Tyre pressure now", tyres_log: "Tyre history (changes, repairs)", oil_checks: "Oil checks", oil_changes: "Oil changes",
+      tyres_live: "Tyre pressure now", tyres_hint: "No tyre pressures yet. Link the four tyre sensors under Settings.", tyres_log: "Tyre history (changes, repairs)", oil_checks: "Oil checks", oil_changes: "Oil changes",
       period: "Period", p_3: "Last 3 months", p_6: "Last 6 months", p_12: "Last 12 months", p_year: "This year", p_all: "All",
       total: "Total", c_refuel: "Fuel", c_service: "Maintenance", c_wash: "Washing", month: "Month", no_costs: "No costs in this period.",
       invalid_date: "Use dd-mm-yyyy", date_ph: "dd-mm-yyyy", required: "Required",
@@ -67,7 +67,7 @@
       f_note: "Notitie", f_type: "Soort", f_cost: "Kosten", f_next_due_date: "Volgende beurt (datum)", f_next_due_odometer: "Volgende beurt bij (km)", f_level: "Peil",
       f_added_litres: "Bijgevuld (liters)", f_l100: "L/100 km",
       type_maintenance: "Onderhoudsbeurt", type_oil_change: "Olie verversen", type_tyres: "Banden", type_brakes: "Remmen", type_apk: "APK", type_repair: "Reparatie", type_other: "Overig",
-      tyres_live: "Bandenspanning nu", tyres_log: "Bandengeschiedenis (wissel, reparatie)", oil_checks: "Olie-peilingen", oil_changes: "Olieverversingen",
+      tyres_live: "Bandenspanning nu", tyres_hint: "Nog geen bandenspanning. Koppel de vier bandensensoren onder Instellingen.", tyres_log: "Bandengeschiedenis (wissel, reparatie)", oil_checks: "Olie-peilingen", oil_changes: "Olieverversingen",
       period: "Periode", p_3: "Laatste 3 maanden", p_6: "Laatste 6 maanden", p_12: "Laatste 12 maanden", p_year: "Dit jaar", p_all: "Alles",
       total: "Totaal", c_refuel: "Tanken", c_service: "Onderhoud", c_wash: "Wassen", month: "Maand", no_costs: "Geen kosten in deze periode.",
       invalid_date: "Gebruik dd-mm-jjjj", date_ph: "dd-mm-jjjj", required: "Verplicht",
@@ -356,7 +356,6 @@
     _wheels() {
       const t = this.t, v = this._snap.view, names = ["wheel_fl", "wheel_fr", "wheel_rl", "wheel_rr"];
       const thr = this._snap.settings.tyre_threshold_bar;
-      if (!Object.keys(v.tyre_pressures).length) return `<div class="wheels" id="wheels"><div class="empty">${esc(t.unknown)}</div></div>`;
       const cells = [0, 1, 2, 3].map((i) => {
         const bar = v.tyre_pressures[i];
         if (bar == null) return `<div class="none w${i}">${esc(t[names[i]])}<br>—</div>`;
@@ -364,7 +363,8 @@
         return this._tile(`${cls} w${i}`, t[names[i]], `${this._num(bar, 2)} <small>bar</small>`, `${d > 0 ? "+" : ""}${this._num(d, 2)} ${esc(t.target)} ${this._num(v.tyre_target, 2)}`);
       });
       const car = `<svg class="car" viewBox="0 0 100 200" fill="none" aria-hidden="true"><rect x="15" y="8" width="70" height="184" rx="28" fill="currentColor" fill-opacity=".15" stroke="currentColor" stroke-opacity=".4"/><rect x="26" y="55" width="48" height="88" rx="16" fill="currentColor" fill-opacity=".12" stroke="currentColor" stroke-opacity=".3"/><path d="M22 50 Q50 36 78 50" stroke="currentColor" stroke-opacity=".4" stroke-width="2"/><path d="M26 148 Q50 162 74 148" stroke="currentColor" stroke-opacity=".4" stroke-width="2"/><rect x="6" y="52" width="10" height="16" rx="4" fill="currentColor" fill-opacity=".25"/><rect x="84" y="52" width="10" height="16" rx="4" fill="currentColor" fill-opacity=".25"/></svg>`;
-      return `<div class="wheels" id="wheels">${cells.join("")}${car}</div>`;
+      const hint = Object.keys(v.tyre_pressures).length ? "" : `<div class="empty" id="wheels-hint" style="grid-column:1/-1;text-align:center">${esc(t.tyres_hint)}</div>`;
+      return `<div class="wheels" id="wheels">${cells.join("")}${car}${hint}</div>`;
     }
 
     _oilCard() {
