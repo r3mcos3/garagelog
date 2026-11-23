@@ -230,7 +230,14 @@
         button.btn.small { padding: 2px 10px; font-size: 13px; } button.btn.danger { color: var(--error-color, #db4437); }
         .empty { color: var(--secondary-text-color); padding: 12px 0; }
         .sources td:nth-child(2) { font-weight: 500; }
-        .wheels { display: grid; grid-template-columns: repeat(2, minmax(110px, 1fr)); gap: 10px; max-width: 360px; }
+        .wheels { display: grid; grid-template-columns: 1fr auto 1fr; grid-template-areas: "fl car fr" "rl car rr"; align-items: center; gap: 14px 12px; max-width: 380px; margin: 0 auto; }
+        .wheels .tile { text-align: center; border-left: 0; border: 1px solid var(--divider-color, #ddd); border-radius: 12px; padding: 10px 6px; }
+        .wheels .tile.ok { border-color: var(--success-color, #43a047); } .wheels .tile.bad { border-color: var(--warning-color, #ffa000); background: color-mix(in srgb, var(--warning-color, #ffa000) 12%, transparent); }
+        .wheels .tile .l { text-transform: uppercase; font-size: 10px; font-weight: 700; letter-spacing: .05em; }
+        .wheels .tile.ok .v { color: var(--success-color, #43a047); } .wheels .tile.bad .v { color: var(--warning-color, #ffa000); }
+        .wheels .none { text-align: center; color: var(--secondary-text-color); border: 1px dashed var(--divider-color, #ddd); border-radius: 12px; padding: 10px 6px; }
+        .wheels .car { grid-area: car; grid-row: 1 / span 2; width: 64px; color: var(--secondary-text-color); }
+        .wheels .w0 { grid-area: fl; } .wheels .w1 { grid-area: fr; } .wheels .w2 { grid-area: rl; } .wheels .w3 { grid-area: rr; }
         .progress { height: 10px; background: var(--divider-color, #ddd); border-radius: 5px; overflow: hidden; margin: 6px 0; }
         .progress > div { height: 100%; background: var(--primary-color, #03a9f4); }
         select.period, input, select.f { font: inherit; padding: 8px; border: 1px solid var(--divider-color, #ccc); border-radius: 6px; background: var(--card-background-color, #fff); color: var(--primary-text-color); }
@@ -349,11 +356,15 @@
     _wheels() {
       const t = this.t, v = this._snap.view, names = ["wheel_fl", "wheel_fr", "wheel_rl", "wheel_rr"];
       const thr = this._snap.settings.tyre_threshold_bar;
-      const cells = Object.entries(v.tyre_pressures).map(([idx, bar]) => {
-        const cls = Math.abs(bar - v.tyre_target) >= thr ? "bad" : "ok";
-        return this._tile(cls, t[names[idx]] || `${t.wheel} ${+idx + 1}`, `${this._num(bar, 2)} bar`, `${esc(t.target)} ${this._num(v.tyre_target, 2)}`);
+      if (!Object.keys(v.tyre_pressures).length) return `<div class="wheels" id="wheels"><div class="empty">${esc(t.unknown)}</div></div>`;
+      const cells = [0, 1, 2, 3].map((i) => {
+        const bar = v.tyre_pressures[i];
+        if (bar == null) return `<div class="none w${i}">${esc(t[names[i]])}<br>—</div>`;
+        const d = bar - v.tyre_target, cls = Math.abs(d) >= thr ? "bad" : "ok";
+        return this._tile(`${cls} w${i}`, t[names[i]], `${this._num(bar, 2)} <small>bar</small>`, `${d > 0 ? "+" : ""}${this._num(d, 2)} ${esc(t.target)} ${this._num(v.tyre_target, 2)}`);
       });
-      return `<div class="wheels" id="wheels">${cells.join("") || `<div class="empty">${esc(t.unknown)}</div>`}</div>`;
+      const car = `<svg class="car" viewBox="0 0 100 200" fill="none" aria-hidden="true"><rect x="15" y="8" width="70" height="184" rx="28" fill="currentColor" fill-opacity=".15" stroke="currentColor" stroke-opacity=".4"/><rect x="26" y="55" width="48" height="88" rx="16" fill="currentColor" fill-opacity=".12" stroke="currentColor" stroke-opacity=".3"/><path d="M22 50 Q50 36 78 50" stroke="currentColor" stroke-opacity=".4" stroke-width="2"/><path d="M26 148 Q50 162 74 148" stroke="currentColor" stroke-opacity=".4" stroke-width="2"/><rect x="6" y="52" width="10" height="16" rx="4" fill="currentColor" fill-opacity=".25"/><rect x="84" y="52" width="10" height="16" rx="4" fill="currentColor" fill-opacity=".25"/></svg>`;
+      return `<div class="wheels" id="wheels">${cells.join("")}${car}</div>`;
     }
 
     _oilCard() {

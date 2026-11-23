@@ -52,6 +52,7 @@
     R.tile_wash = tile("Last wash").classList.contains("warn") && tile("Last wash").textContent.includes("45");
     R.sources = $$(".sources tr").length === 3 && $('[data-src="fuel_level"]').textContent.includes("48");
     R.wheels = $$("#wheels .tile").length === 4 && $$("#wheels .tile.bad").length === 1 && $("#wheels").textContent.includes("Front left");
+    R.wheels_diagram = !!$("#wheels svg.car") && $$("#wheels .tile.w0, #wheels .tile.w3").length === 2;
     R.oil_card = $(".progress > div").style.width === "62%" && $("#oilest").textContent.includes("8,000");
 
     // refuel tab: table, dates, consumption, xss

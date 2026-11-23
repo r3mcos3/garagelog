@@ -20,7 +20,7 @@ and oil, in one standalone integration. No cloud account, no app, no server: eve
 - **Reminders** are events (`garagelog_apk_due`, `garagelog_service_due`, `garagelog_wash_due`, `garagelog_tyre_pressure`,
   `garagelog_oil_check_due`, `garagelog_oil_change_due`) and messages to the notify targets you choose (Telegram, phone, ...).
 - A **sidebar panel** "Garagelog" (icon `mdi:car`): a full page per vehicle with an overview (warnings, APK, next service, last refuel,
-  consumption, costs, live source values, tyre pressure per wheel, oil life), log tabs (fuel, maintenance, washing, tyres, oil) with add / edit /
+  consumption, costs, live source values, tyre pressure per wheel shown on a car outline, oil life), log tabs (fuel, maintenance, washing, tyres, oil) with add / edit /
   delete, a cost tab with a stacked monthly chart and a period filter, and a settings tab. Several vehicles are chosen in the header; on a phone
   the menu button opens the Home Assistant sidebar. Optionally only for administrators (setting "Sidebar panel for admins only").
 - A **dashboard card** (`garagelog-card`) with the status of the vehicle and quick buttons (refuel, washed, oil checked).
