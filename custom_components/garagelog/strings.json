@@ -48,12 +48,14 @@
           "oil_check_day": "Check oil from day of month",
           "service_interval_km": "Service interval (km)",
           "service_interval_days": "Service interval (days)",
-          "apk_date": "APK date (only without RDW)"
+          "apk_date": "APK date (only without RDW)",
+          "panel_admin_only": "Sidebar panel for admins only"
         },
         "data_description": {
           "tyre_entities": "One sensor per tyre (kPa, bar or psi).",
           "notify_targets": "Optional. For example Telegram or your phone.",
-          "tyre_threshold_bar": "A message is sent once when a tyre deviates this much from the target."
+          "tyre_threshold_bar": "A message is sent once when a tyre deviates this much from the target.",
+          "panel_admin_only": "Only administrators see the Garagelog item in the sidebar."
         }
       }
     }

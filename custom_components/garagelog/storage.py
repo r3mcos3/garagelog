@@ -69,6 +69,17 @@ class VehicleStore:
             self._save()
         return changed
 
+    def update(self, collection: str, record_id: str, changes: dict[str, Any]) -> dict[str, Any] | None:
+        for record in self.data[collection]:
+            if record.get("id") == record_id:
+                record.update(changes)
+                for key in [k for k, v in record.items() if v is None]:
+                    del record[key]
+                self.data[collection].sort(key=lambda r: (str(r.get("date")), r.get("odometer") or 0))
+                self._save()
+                return record
+        return None
+
     def has(self, collection: str, record_id: str) -> bool:
         return any(r.get("id") == record_id for r in self.data[collection])
 

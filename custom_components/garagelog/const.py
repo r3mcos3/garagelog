@@ -31,6 +31,7 @@ CONF_OIL_CHECK_DAY = "oil_check_day"
 CONF_SERVICE_INTERVAL_KM = "service_interval_km"
 CONF_SERVICE_INTERVAL_DAYS = "service_interval_days"
 CONF_APK_DATE = "apk_date"
+CONF_PANEL_ADMIN = "panel_admin_only"
 
 DEFAULT_TYRE_TARGET = 2.5
 DEFAULT_TYRE_THRESHOLD = 0.2
@@ -76,4 +77,4 @@ EVENT_OIL_CHECK_DUE = f"{EVENT_PREFIX}oil_check_due"
 EVENT_OIL_CHANGE_DUE = f"{EVENT_PREFIX}oil_change_due"
 
 # websocket / frontend
-CARD_URL = f"/{DOMAIN}_static/{DOMAIN}-card.js"
+PANEL_PATH = DOMAIN

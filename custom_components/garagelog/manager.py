@@ -14,6 +14,7 @@ from homeassistant.helpers.event import async_track_state_change_event, async_tr
 from homeassistant.util import dt as dt_util
 
 from . import calc, rdw
+from . import settings as settings_mod
 from .const import (
     CONF_APK_DATE,
     CONF_APK_DAYS,
@@ -115,7 +116,9 @@ class VehicleManager:
         return f"{DOMAIN}_update_{self.entry.entry_id}"
 
     def _entity(self, key: str) -> str | None:
-        return self.entry.options.get(key) or self.entry.data.get(key) or None
+        if key in self.entry.options:  # an empty option overrides (clears) the setup value
+            return self.entry.options[key] or None
+        return self.entry.data.get(key) or None
 
     def _tyre_entities(self) -> list[str]:
         value = self.entry.options.get(CONF_TYRE_ENTITIES, self.entry.data.get(CONF_TYRE_ENTITIES))
@@ -298,21 +301,70 @@ class VehicleManager:
             nxt["km"] is not None and nxt["km"] <= SERVICE_SOON_KM
         )
 
-    def snapshot(self) -> dict[str, Any]:
-        """JSON-safe view for the dashboard card."""
-        recent = {
-            name: list(reversed(self.store.records(name)[-5:]))
-            for name in (REFUELS, SERVICES, WASHES, OIL_CHECKS)
+    def sources(self) -> list[dict[str, Any]]:
+        """Live values of the chosen source entities (for the panel)."""
+        out: list[dict[str, Any]] = []
+        picks = [
+            ("odometer", self._entity(CONF_ODOMETER_ENTITY)),
+            ("fuel_level", self._entity(CONF_FUEL_LEVEL_ENTITY)),
+            ("oil_life", self._entity(CONF_OIL_LIFE_ENTITY)),
+            *[(f"tyre_{i}", e) for i, e in enumerate(self._tyre_entities())],
+        ]
+        for key, entity_id in picks:
+            if not entity_id:
+                continue
+            state = self.hass.states.get(entity_id)
+            out.append(
+                {
+                    "key": key,
+                    "entity_id": entity_id,
+                    "name": (state.attributes.get("friendly_name") if state else None) or entity_id,
+                    "value": _number(state),
+                    "unit": state.attributes.get("unit_of_measurement") if state else None,
+                    "available": _number(state) is not None,
+                }
+            )
+        return out
+
+    def warnings(self) -> list[dict[str, Any]]:
+        view, out = self.view, []
+        if not view:
+            return out
+        if view["apk_days"] is not None and view["apk_due"]:
+            out.append({"kind": "apk", "level": "bad" if view["apk_days"] < 0 else "warn", "days": view["apk_days"]})
+        if view["service_due"]:
+            out.append({"kind": "service", "level": "warn", "days": view["next_service_days"], "km": view["next_service_km"]})
+        if view["wash_status"] != "ok":
+            out.append({"kind": "wash", "level": "bad" if view["wash_status"] == WASH_DUE else "warn", "days": view["days_since_wash"]})
+        if view["tyre_low"]:
+            out.append({"kind": "tyre", "level": "bad", "deviation": view["tyre_deviation"]})
+        if view["oil_check_due"]:
+            out.append({"kind": "oil_check", "level": "warn"})
+        est = view["oil_estimate"]
+        if est and est["km"] is not None and est["km"] <= OIL_CHANGE_SOON_KM:
+            out.append({"kind": "oil_change", "level": "warn", "km": est["km"]})
+        return out
+
+    def snapshot(self, full: bool = False) -> dict[str, Any]:
+        """JSON-safe view for the card (recent records) or the panel (``full``: everything)."""
+        names = (REFUELS, SERVICES, WASHES, OIL_CHECKS)
+        data: dict[str, Any] = {
+            "entry_id": self.entry.entry_id,
+            "title": self.entry.title,
+            "plate": self.plate,
+            "currency": self.hass.config.currency,
+            "view": self.view,
+            "recent": {n: list(reversed(self.store.records(n)[-5:])) for n in names},
         }
-        return _jsonable(
-            {
-                "title": self.entry.title,
-                "plate": self.plate,
-                "currency": self.hass.config.currency,
-                "view": self.view,
-                "recent": recent,
-            }
-        )
+        if full:
+            data["records"] = {n: list(reversed(self.store.records(n))) for n in names}
+            data["monthly"] = calc.monthly_costs(
+                self.store.records(REFUELS), self.store.records(SERVICES), self.store.records(WASHES)
+            )
+            data["sources"] = self.sources()
+            data["warnings"] = self.warnings()
+            data["settings"] = settings_mod.effective(self.entry.data, self.entry.options)
+        return _jsonable(data)
 
     # ------------------------------------------------------------------ reminders
 
@@ -426,6 +478,27 @@ class VehicleManager:
             reset_oil=collection == SERVICES and record.get("type") == SERVICE_OIL_CHANGE
         )
         return stored
+
+    async def async_update_record(
+        self, collection: str, record_id: str, changes: dict[str, Any]
+    ) -> dict[str, Any] | None:
+        if collection == REFUELS:
+            current = next((r for r in self.store.records(REFUELS) if r.get("id") == record_id), None)
+            if current is None:
+                return None
+            litres = changes.get("liters", current["liters"])
+            cost, price = changes.get("total_cost"), changes.get("price_per_litre")
+            if "total_cost" not in changes and "price_per_litre" not in changes:
+                price = current.get("price_per_litre")
+                cost = None if "liters" in changes else current.get("total_cost")
+            changes = {
+                **changes,
+                **dict(zip(("liters", "total_cost", "price_per_litre"), calc.normalize_refuel(litres, cost, price), strict=True)),
+            }
+        record = self.store.update(collection, record_id, changes)
+        if record is not None:
+            await self._async_after_change()
+        return record
 
     async def async_remove_record(self, collection: str, record_id: str) -> bool:
         removed = self.store.remove(collection, record_id)

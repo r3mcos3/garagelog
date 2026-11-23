@@ -48,12 +48,14 @@
           "oil_check_day": "Olie peilen vanaf dag van de maand",
           "service_interval_km": "Onderhoudsinterval (km)",
           "service_interval_days": "Onderhoudsinterval (dagen)",
-          "apk_date": "APK-datum (alleen zonder RDW)"
+          "apk_date": "APK-datum (alleen zonder RDW)",
+          "panel_admin_only": "Zijbalkpaneel alleen voor beheerders"
         },
         "data_description": {
           "tyre_entities": "Eén sensor per band (kPa, bar of psi).",
           "notify_targets": "Optioneel. Bijvoorbeeld Telegram of je telefoon.",
-          "tyre_threshold_bar": "Er komt één melding als een band zoveel afwijkt van de doelspanning."
+          "tyre_threshold_bar": "Er komt één melding als een band zoveel afwijkt van de doelspanning.",
+          "panel_admin_only": "Alleen beheerders zien het Garagelog-item in de zijbalk."
         }
       }
     }

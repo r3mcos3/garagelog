@@ -260,3 +260,18 @@ def oil_estimate(
         due = _add_days(parse_date(last["date"]), round(remaining_days))  # type: ignore[arg-type]
         result["date"] = due
     return result if (result["km"] is not None or result["date"] is not None) else None
+
+
+def monthly_costs(
+    refuels: list[Record], services: list[Record], washes: list[Record]
+) -> list[Record]:
+    """Costs per month, split in refuel / service / wash, oldest first (for the stacked chart)."""
+    months: dict[str, Record] = {}
+    for kind, records in (("refuel", refuels), ("service", services), ("wash", washes)):
+        for day, cost in _costs(records):
+            row = months.setdefault(
+                f"{day.year:04d}-{day.month:02d}",
+                {"refuel": 0.0, "service": 0.0, "wash": 0.0},
+            )
+            row[kind] = round(row[kind] + cost, 2)
+    return [{"month": month, **months[month]} for month in sorted(months)]

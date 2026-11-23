@@ -31,6 +31,7 @@ from .const import (
     CONF_ODOMETER_ENTITY,
     CONF_OIL_CHECK_DAY,
     CONF_OIL_LIFE_ENTITY,
+    CONF_PANEL_ADMIN,
     CONF_PLATE,
     CONF_SERVICE_INTERVAL_DAYS,
     CONF_SERVICE_INTERVAL_KM,
@@ -148,7 +149,11 @@ class GaragelogOptionsFlow(OptionsFlow):
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         if user_input is not None:
-            return self.async_create_entry(data=_clean_sources_and_options(user_input))
+            data = _clean_sources_and_options(user_input)
+            for key in (*SOURCE_KEYS, CONF_TYRE_ENTITIES):  # cleared here, chosen at setup: override
+                if key not in data and key in self.config_entry.data:
+                    data[key] = [] if key == CONF_TYRE_ENTITIES else ""
+            return self.async_create_entry(data=data)
         entry = self.config_entry
         current = {**entry.data, **entry.options}
         targets = list(entry.options.get(CONF_NOTIFY_TARGETS) or [])
@@ -175,6 +180,7 @@ class GaragelogOptionsFlow(OptionsFlow):
         schema.update(opt(CONF_OIL_CHECK_DAY, DEFAULT_OIL_CHECK_DAY, _number(1, 31, 1)))
         schema.update(opt(CONF_SERVICE_INTERVAL_KM, DEFAULT_SERVICE_INTERVAL_KM, _number(1000, 100000, 500, "km")))
         schema.update(opt(CONF_SERVICE_INTERVAL_DAYS, DEFAULT_SERVICE_INTERVAL_DAYS, _number(30, 1500, 1, "d")))
+        schema[vol.Optional(CONF_PANEL_ADMIN, default=bool(entry.options.get(CONF_PANEL_ADMIN)))] = bool
         apk = entry.options.get(CONF_APK_DATE)
         schema[vol.Optional(CONF_APK_DATE, description={"suggested_value": apk} if apk else {})] = DateSelector()
         return self.async_show_form(step_id="init", data_schema=vol.Schema(schema))
@@ -183,6 +189,8 @@ class GaragelogOptionsFlow(OptionsFlow):
 def _clean_sources_and_options(user_input: dict[str, Any]) -> dict[str, Any]:
     """Drop cleared fields; numbers come back as floats from the selector."""
     out = {k: v for k, v in user_input.items() if v not in (None, "", [])}
+    if CONF_PANEL_ADMIN in user_input:
+        out[CONF_PANEL_ADMIN] = bool(user_input[CONF_PANEL_ADMIN])
     for key in (CONF_WASH_SOON_DAYS, CONF_WASH_DUE_DAYS, CONF_APK_DAYS, CONF_OIL_CHECK_DAY,
                 CONF_SERVICE_INTERVAL_KM, CONF_SERVICE_INTERVAL_DAYS):
         if key in out:
