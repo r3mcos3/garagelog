@@ -1,0 +1,86 @@
+# Ontwerp Garagelog
+
+Werknaam **Garagelog**, domein `garagelog`. Naamcheck 2026-11-23: geen integratie `garagelog` in HA core of in de HACS-integratielijst
+(data-v2.hacs.xyz); op GitHub zijn er alleen niet-HA-projecten met die naam (webapps, 0★). Geen conflict met een domein; wel is de
+naam als zoekterm niet uniek. Hernoemen: zie CLAUDE.md (alles via `DOMAIN` in `const.py`).
+
+## Uitgangspunten
+- Standalone, lokaal, HA `Store`. Eén config entry = één voertuig (unique_id = kenteken zonder streepjes, hoofdletters).
+- Pure rekenlogica (`calc.py`); HA-laag dun.
+- Meldingen idempotent en persistent (`state` in de store).
+- Alles configureerbaar via de options flow; redelijke standaardwaarden.
+
+## Entiteiten per voertuig (device = voertuig)
+| Entiteit | Soort | Betekenis |
+|---|---|---|
+| `sensor.<auto>_odometer` | sensor (km) | km-stand: bron-entiteit, anders hoogste gelogde stand |
+| `sensor.<auto>_last_consumption` / `_average_consumption` | sensor (l/100 km) | laatste en gemiddelde verbruik; attribuut `km_per_litre` |
+| `sensor.<auto>_last_price_per_litre` | sensor (EUR/l) | prijs per liter van de laatste tankbeurt |
+| `sensor.<auto>_total_fuel` | sensor (l) | totaal getankt |
+| `sensor.<auto>_total_cost`, `_cost_this_year`, `_cost_this_month`, `_average_monthly_cost` | sensor (EUR) | tank + onderhoud + wassen |
+| `sensor.<auto>_apk_date`, `_apk_days` | sensor (date / dagen) | APK-vervaldatum (RDW) en resterende dagen |
+| `sensor.<auto>_next_service_days`, `_next_service_km` | sensor | dagen/km tot volgende beurt |
+| `sensor.<auto>_days_since_wash`, `_wash_status` | sensor | dagen sinds wassen; enum ok / soon / due |
+| `sensor.<auto>_tyre_deviation` | sensor (bar) | grootste afwijking t.o.v. doelspanning |
+| `binary_sensor.<auto>_tyre_pressure_low` | binary (problem) | afwijking >= drempel |
+| `sensor.<auto>_oil_change_estimate_km` / `_date` | sensor | geschatte wissel uit olieleven-% (attribuut `estimate: true`) |
+| `binary_sensor.<auto>_oil_check_due` | binary | peilen nu aan de beurt |
+| `binary_sensor.<auto>_apk_due`, `_service_due` | binary (problem) | binnen de herinneringsdrempel |
+
+## Opslag (`.storage/garagelog.<entry_id>`, versie 1)
+```json
+{
+  "refuels":   [{"id", "date", "odometer", "liters", "total_cost", "price_per_litre", "full", "note"}],
+  "services":  [{"id", "date", "odometer", "type", "cost", "note", "next_due_date", "next_due_odometer"}],
+  "washes":    [{"id", "date", "cost", "note"}],
+  "oil_checks":[{"id", "date", "odometer", "level", "added_litres", "note"}],
+  "oil_samples":[{"date", "odometer", "life_pct"}],
+  "rdw":       {"merk", "handelsbenaming", "brandstof", "datum_eerste_toelating", "vervaldatum_apk", "fetched_at"},
+  "state":     {"notified": {"apk": "<apk-datum>", "service": "<doel>", "wash": {"<laatste wasdatum>": [30, 60]},
+                 "oil_check": "<YYYY-MM>", "oil_change": "<geschatte datum>"}, "tyre_alert": false}
+}
+```
+Servicetypen: `maintenance` (grote beurt), `oil_change`, `tyres`, `brakes`, `apk`, `repair`, `other`.
+
+## Config en options flow
+1. **user**: kenteken (+ optionele naam). RDW-opzoeking (`https://opendata.rdw.nl/resource/m9d7-ebf2.json?kenteken=`; brandstof uit
+   `8ys7-d773`) vult titel en gegevens in; onbekend kenteken of geen netwerk -> fout `rdw_not_found` / `cannot_connect`, met als
+   uitweg "toch zonder RDW" (checkbox `skip_rdw`).
+2. **sources**: optionele entiteiten: km-stand, brandstofniveau, bandenspanning (4 wielen, of één), olieleven (%).
+3. **options**: bronnen opnieuw, meldingsdoelen, doelbandenspanning (bar), drempel (0,2 bar), wastegel (30/60 dagen), APK-dagen (30),
+   olie-peildag (25), service-interval (km, dagen). 
+
+## Services (entiteit = willekeurige Garagelog-entiteit van het voertuig)
+`log_refuel` (liters, total_cost of price_per_litre, odometer, full, date), `log_service`, `log_wash`, `log_oil_check`,
+`log_odometer`, `remove_entry` (id + soort), `refresh_rdw`, `export_data` (schrijft JSON in `/config/garagelog/`), `import_data`.
+
+## Events en meldingen
+`garagelog_apk_due`, `garagelog_service_due`, `garagelog_wash_due`, `garagelog_tyre_pressure`, `garagelog_oil_check_due`,
+`garagelog_oil_change_due`; payload: `entry_id`, `vehicle`, `plate`, eventspecifieke velden. Elk event levert ook een notify-bericht
+naar de gekozen doelen. Idempotentie via `state.notified`.
+
+## Schattingen en regels
+- **Verbruik**: tussen twee volle tankbeurten: liters van alle tankbeurten ná de vorige volle tot en met de nieuwe, gedeeld door
+  de km; gemiddelde = totale liters / totale km over de geldige segmenten.
+- **Volgende beurt**: expliciete `next_due_*` van de laatste `maintenance`-beurt, anders laatste beurt + interval.
+- **Wassen**: >=30 dagen `soon`, >=60 dagen `due`; één melding per drempel per laatste wasdatum.
+- **Banden**: bron in bar (kPa en psi worden omgerekend); afwijking = max |druk - doel|; melding bij >= drempel, daarna pas weer na
+  terugkeer onder drempel - 0,05 bar (hysterese): één melding per dip.
+- **Olie peilen**: aan de beurt vanaf de eerste zaterdag/zondag op of na de 25e (geen weekend in die maand -> laatste dag), tot er
+  die maand een peilbeurt is gelogd; één melding per maand.
+- **Olieverversing**: lineaire extrapolatie van olieleven-% over km en tijd sinds de laatste `oil_change`; minimaal 100 km en 3
+  procentpunt daling nodig; anders `unknown`. Altijd gelabeld als schatting; melding bij <= 1000 km of 30 dagen (eenmalig per schatting).
+- **APK**: vervaldatum uit RDW (dagelijks vernieuwen, plus `refresh_rdw`); melding 30 dagen vooraf, eenmalig per APK-datum.
+
+## Kaart
+`garagelog-card` (vanilla web component, automatisch geladen): kenteken/merk, km-stand, APK-dagen, volgende beurt, verbruik,
+kosten deze maand, banden-/wasstatus en snelle knoppen (tanken/wassen). Geen zijbalkpaneel in de MVP.
+
+## Export/import (voor Supabase-historie)
+`export_data` en `import_data` gebruiken één JSON-formaat: `{"format": "garagelog/1", "vehicle": {...}, "refuels": [...],
+"services": [...], "washes": [...], "oil_checks": [...]}` met dezelfde velden als de opslag. Een eenmalig script (buiten de
+integratie) zet de Supabase-tabellen om naar dit formaat; import is idempotent op `id` (dubbele ids worden overgeslagen).
+
+## Mijlpalen
+M1 voertuig + config flow + RDW + km-bron · M2 tanklog · M3 onderhoud + APK + herinneringen · M4 wassen, banden, olie ·
+M5 kostensensoren · M6 kaart + browsertests · later: export/import-service, tankbeurt-detectie uit niveau, zijbalkpaneel.
