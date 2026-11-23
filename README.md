@@ -9,7 +9,8 @@ and oil, in one standalone integration. No cloud account, no app, no server: eve
 
 - **One entry per vehicle.** Enter the licence plate: the RDW (open data, no key) fills in make, model, fuel and the **APK expiry date**.
 - **Source entities.** Optionally pick the entities your car already provides (odometer, fuel level, tyre pressures, oil life %,
-  for example from FordConnect). Everything else you log by hand.
+  for example from FordConnect). Tyre pressures: pick four sensors, or one sensor that carries `frontLeft`,
+  `frontRight`, `rearLeft` and `rearRight` as attributes (for example "2.53 bar"). Everything else you log by hand.
 - **Refuel log** (`garagelog.log_refuel`): consumption in L/100 km and km/L (full-tank method), cost, price per litre, totals.
 - **Maintenance log** (`garagelog.log_service`) with next service in days and km.
 - **APK reminder** 30 days ahead, once per APK date.

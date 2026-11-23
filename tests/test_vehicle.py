@@ -234,6 +234,32 @@ async def test_tyre_units_psi_and_bar(hass, mock_entry, with_sources):
     assert attrs["target_bar"] == 2.5 and len(attrs["pressures_bar"]) == 4
 
 
+async def test_tyre_pressures_from_attributes_of_one_sensor(
+    hass, mock_entry, entry_data, with_sources
+):
+    """A single sensor (FordPass style) carries all four wheels as strings in its attributes."""
+    hass.states.async_set(
+        "sensor.ford_tyres",
+        "NORMAL_OPERATION",
+        {
+            "frontLeft": "2.53 bar",
+            "frontRight": "2.58 bar",
+            "rearLeft": "250 kPa",
+            "rearRight": "2.51",
+            "friendly_name": "Tire Pressure",
+        },
+    )
+    mock_entry.add_to_hass(hass)
+    hass.config_entries.async_update_entry(
+        mock_entry, data={**with_sources, "tyre_entities": ["sensor.ford_tyres"]}
+    )
+    assert await hass.config_entries.async_setup(mock_entry.entry_id)
+    await hass.async_block_till_done()
+    attrs = hass.states.get(eid(hass, mock_entry, "tyre_deviation")).attributes
+    assert attrs["pressures_bar"] == {"0": 2.53, "1": 2.58, "2": 2.5, "3": 2.51}
+    assert float(val(hass, mock_entry, "tyre_deviation")) == pytest.approx(0.08, abs=0.001)
+
+
 async def test_oil_check_weekend_after_25th_once_per_month(hass, mock_entry, notified, freezer):
     events = async_capture_events(hass, "garagelog_oil_check_due")
     await setup(hass, mock_entry, freezer, "2026-11-27 10:00:00+01:00")  # Friday

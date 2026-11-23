@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from collections.abc import Callable
 from datetime import date, timedelta
 from typing import Any
@@ -68,6 +69,27 @@ from .storage import VehicleStore
 _LOGGER = logging.getLogger(__name__)
 _SAMPLE_LIMIT = 500
 _UNAVAILABLE = ("unknown", "unavailable", "", None)
+
+
+_WHEEL_ATTRIBUTES = (
+    ("frontLeft", "front_left"),
+    ("frontRight", "front_right"),
+    ("rearLeft", "rear_left"),
+    ("rearRight", "rear_right"),
+)
+_PRESSURE_RE = re.compile(r"^\s*(-?\d+(?:[.,]\d+)?)\s*([A-Za-z]*)\s*$")
+
+
+def _pressure_attribute(raw: Any) -> float | None:
+    """Parse ``2.53``, ``"2.53 bar"``, ``"250 kPa"`` or ``"36 psi"`` into bar."""
+    if isinstance(raw, bool) or raw is None:
+        return None
+    if isinstance(raw, int | float):
+        return calc.to_bar(float(raw), None)
+    match = _PRESSURE_RE.match(str(raw))
+    if not match:
+        return None
+    return calc.to_bar(float(match.group(1).replace(",", ".")), match.group(2) or None)
 
 
 def _number(state: Any) -> float | None:
@@ -197,6 +219,19 @@ class VehicleManager:
             value = _number(state)
             if value is not None and state is not None:
                 out[str(index)] = calc.to_bar(value, state.attributes.get("unit_of_measurement"))
+            elif state is not None:
+                # one sensor carrying all four wheels as attributes (e.g. FordPass: "frontLeft": "2.53 bar")
+                for wheel, keys in enumerate(_WHEEL_ATTRIBUTES):
+                    bar = next(
+                        (
+                            b
+                            for k in keys
+                            if (b := _pressure_attribute(state.attributes.get(k))) is not None
+                        ),
+                        None,
+                    )
+                    if bar is not None:
+                        out[str(wheel)] = bar
         return out
 
     def oil_life(self) -> float | None:
