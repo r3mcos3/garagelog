@@ -24,3 +24,10 @@ Telegram, mobiel en de kaart in het echte dashboard zijn niet getest.** Doorloop
 16. Instellingen-tab: meldingsdoel kiezen en opslaan, bron wissen en opnieuw kiezen, "alleen beheerders": zie je het paneel als niet-beheerder niet meer?
 17. Telefoon (HA-app): past de pagina, werkt ☰ (opent de HA-zijbalk), zijn formulieren bruikbaar, scrollt de tabbalk?
 18. Twee auto's (als je die hebt): wisselen in de kop, blijft elke auto zijn eigen data houden?
+
+## Brandstofprijzen (0.3.0)
+19. Instellingen → Brandstofprijzen: voeg een station toe met een naam en een sensor met de literprijs (bijvoorbeeld `sensor.euro95_poppel`). Opslaan: verschijnt het tabblad met de prijs?
+20. Verandert de prijs van een sensor: komt er een pijl (▲/▼) met het verschil en "sinds"-datum, en een regel in "Wijzigingen per station"? Blijft de historie na een HA-herstart staan?
+21. Zijn er twee of meer stations: klopt "Grootste verschil" en staat de goedkoopste groen?
+22. Tankkosten: klopt het bedrag met (tankinhoud × (1 − brandstofniveau)) × prijs? Typ een andere tankinhoud: rekent het direct om?
+23. Na ruim 14 dagen historie: verschijnt de tip over de prijs ten opzichte van het eigen gemiddelde; na ruim 60 dagen die over de goedkoopste weekdag?

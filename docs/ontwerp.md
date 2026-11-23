@@ -99,3 +99,10 @@ Gebouwd: M1–M6 (voertuig + RDW + bronnen, tanklog, onderhoud + APK, wassen/ban
 Websocket: `garagelog/vehicles`, `garagelog/subscribe` (met `entry_id` en `full`; overleeft het herladen van de entry), `record_add`/`record_update`/`record_remove`
 (velden en validatie gedeeld met de services via `records.py`), `settings_set` (alleen admin, validatie in `settings.py`) en `notify_targets`.
 Tabs: overzicht, tanken, onderhoud, wassen, banden (live druk per wiel + bandenregistraties als service-type `tyres`), olie (peilingen + `oil_change`), kosten (SVG, gestapeld per maand), instellingen.
+
+## Brandstofprijzen (0.3.0)
+Instelling `fuel_stations` (max. 8 x `{name, entity_id}`, in het paneel onder Instellingen) en `tank_capacity_l`. De prijs komt uit een sensor (geen scraping in de integratie).
+Opslag: `fuel_prices` in de store, per sensor een lijst `{price, at}` met alleen de wijzigingen (1 jaar, de laatste prijs voor de grens blijft staan) en `gap` voor het verschil tussen
+goedkoopste en duurste station. Berekeningen in `calc.py`: `price_change`, `weighted_average_price`, `price_trend` (>= 14 dagen, >= 1%), `weekday_averages`/`best_weekday`
+(>= 60 dagen, >= 4 dagen per weekdag, verschil >= 0,005), `top_up` (hele tank, of wat er ontbreekt bij een bekend brandstofniveau). Tankinhoud: instelling, anders het gemiddelde van de volle tankbeurten, anders 50 L.
+Sensor `cheapest_fuel_price`; het paneel krijgt `view.fuel_prices` en bij `full` ook `price_history`.

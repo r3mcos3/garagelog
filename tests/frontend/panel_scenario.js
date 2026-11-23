@@ -38,7 +38,7 @@
 
     // header + tabs
     R.vehicle_select = $$("#vehicle option").length === 2 && $("#vehicle").value === "e1";
-    R.tabs = $$(".tabs button").map((b) => b.textContent).join(",") === "Overview,Fuel,Maintenance,Washing,Tyres,Oil,Costs,Settings";
+    R.tabs = $$(".tabs button").map((b) => b.textContent).join(",") === "Overview,Fuel,Fuel prices,Maintenance,Washing,Tyres,Oil,Costs,Settings";
     R.no_menu_on_desktop = !$("#menu");
 
     // overview
@@ -144,6 +144,19 @@
     R.period_year = $("#costtotal").textContent.includes("897.20");
     $("#period").value = "3";
 
+    // fuel prices
+    await goTab("fuelprices");
+    const tb = () => $('[data-station="sensor.fuel_tb"]');
+    R.fp_cards = $$("#stations .station[data-station]").length === 3 && tb().classList.contains("best") && tb().textContent.includes("1.859") && $('[data-station="sensor.fuel_rv"]').textContent.includes("Not available");
+    R.fp_badge = !!tb().querySelector(".badge.down") && tb().textContent.includes("0.030") && !!$('[data-station="sensor.fuel_pp"] .badge.up');
+    R.fp_gap = $("#gapcard").textContent.includes("0.070") && $("#gapcard").textContent.includes("Cheaper at Tilburg than at Poppel");
+    R.fp_topup = $("#topup").textContent.includes("€50.27") && $("#topup").textContent.includes("48%") && $("#topup").textContent.includes("tank size in the settings");
+    const tank = $("#tank-liters"); tank.value = "40"; tank.dispatchEvent(new Event("input", { bubbles: true }));
+    R.fp_topup_typed = $("#topup").textContent.includes("€38.67") && $("#tank-liters").value === "40" && !$("#topup").textContent.includes("settings");
+    R.fp_tips = $$("#tips p").length === 2 && $("#tips").textContent.includes("3.2% below") && $("#tips").textContent.includes("Tuesdays");
+    R.fp_chart = $$("#pricechart path.line").length === 2 && $$("#pricechart circle").length === 5;
+    R.fp_history = $$("details.hist").length === 4 && $('details.hist[data-hist="Tilburg"]').textContent.includes("Tilburg (3)") && $('details.hist[data-hist="Tilburg"] .badge.down') !== null;
+
     // settings
     await goTab("settings");
     await tick(10);
@@ -157,6 +170,10 @@
     sf().requestSubmit(); await tick(5);
     R.settings_invalid_date = $("#settings-err").textContent.includes("dd-mm-yyyy");
     sf().elements.apk_date.value = "20-01-2027";
+    R.fp_station_form = sf().elements.fs_name_0.value === "Tilburg" && sf().elements.fs_entity_2.value === "sensor.fuel_rv" && sf().elements.fs_name_3.value === "" && sf().elements.tank_capacity_l.value === "52";
+    sf().elements.fs_name_5.value = "Orphan"; sf().requestSubmit(); await tick(5);
+    R.fp_station_err = $("#settings-err").textContent.includes("name and a sensor");
+    sf().elements.fs_name_5.value = "";
     sf().elements.tyre_3.value = "sensor.t3";
     sf().elements.odometer_entity.value = "";
     sf().querySelector('input[value="service:mobile_app_phone"]').checked = true;
@@ -164,7 +181,8 @@
     const ss = sent.find((m) => m.type === "garagelog/settings_set");
     R.settings_sent = !!ss && ss.settings.tyre_target_bar === 2.4 && ss.settings.apk_date === "2027-01-20" && ss.settings.odometer_entity === null &&
       JSON.stringify(ss.settings.tyre_entities) === JSON.stringify(["sensor.t0", "sensor.t1", "sensor.t2", "sensor.t3"]) &&
-      JSON.stringify(ss.settings.notify_targets) === JSON.stringify(["entity:notify.telegram", "service:mobile_app_phone"]) && ss.settings.panel_admin_only === false && ss.entry_id === "e1";
+      JSON.stringify(ss.settings.notify_targets) === JSON.stringify(["entity:notify.telegram", "service:mobile_app_phone"]) && ss.settings.panel_admin_only === false && ss.entry_id === "e1" &&
+      ss.settings.fuel_stations.length === 3 && ss.settings.fuel_stations[1].entity_id === "sensor.fuel_pp" && ss.settings.tank_capacity_l === 52;
     // unsaved edits survive a pushed snapshot
     sf().elements.wash_soon_days.value = "21";
     sf().elements.wash_soon_days.dispatchEvent(new Event("input", { bubbles: true }));
@@ -202,7 +220,7 @@
     // Dutch
     hass.language = "nl"; panel.hass = hass; hass.language = "nl";
     panel._render(); await tick(5);
-    R.dutch_tabs = $$(".tabs button").map((b) => b.textContent).join(",") === "Overzicht,Tanken,Onderhoud,Wassen,Banden,Olie,Kosten,Instellingen";
+    R.dutch_tabs = $$(".tabs button").map((b) => b.textContent).join(",") === "Overzicht,Tanken,Brandstofprijzen,Onderhoud,Wassen,Banden,Olie,Kosten,Instellingen";
     R.dutch_overview = $(".card h2").textContent === "Aandacht nodig" && $('[data-w="apk"]').textContent.includes("27 dagen");
 
     // non-admin cannot save settings

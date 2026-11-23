@@ -29,6 +29,14 @@
       f_note: "Note", f_type: "Type", f_cost: "Cost", f_next_due_date: "Next due date", f_next_due_odometer: "Next due at (km)", f_level: "Level",
       f_added_litres: "Litres added", f_l100: "L/100 km",
       type_maintenance: "Maintenance", type_oil_change: "Oil change", type_tyres: "Tyres", type_brakes: "Brakes", type_apk: "APK", type_repair: "Repair", type_other: "Other",
+      fuelprices: "Fuel prices", fp_none: "No fuel stations yet. Add the sensors that carry a price per litre under Settings → Fuel prices.", fp_na: "Not available", fp_cheapest: "Cheapest", fp_gap: "Biggest gap", fp_same: "Same price", fp_gap_text: (a, b) => `Cheaper at ${a} than at ${b}`,
+      fp_since: "since", fp_from: "from", fp_topup_full: "A full tank costs about", fp_topup_now: "Filling up now costs about", fp_tank_size: "Tank size", fp_liters_needed: (l, p, tank) => `Tank is ~${p}% full, about ${l} L needed of ${tank} L`,
+      fp_tank_setting: "Based on the tank size in the settings.", fp_tank_average: "Based on your average full fill-up from the fuel log.", fp_tank_default: "Assumed 50 L: set the tank size in the settings.",
+      fp_chart: "Price history", fp_gap_chart: "Biggest gap over time", fp_history: "Changes per station", fp_no_history: "No changes logged yet.", fp_tips: "Tips",
+      fp_trend_below: (n, pct, d) => `${n} is ${pct}% below its own average of the last ${d} days: a decent time to fill up.`, fp_trend_above: (n, pct, d) => `${n} is ${pct}% above its own average of the last ${d} days: wait if you can.`,
+      fp_best_day: (n, day, avg, gap) => `${day} tend to be cheapest at ${n} (${avg} on average); the priciest day runs ${gap} higher.`,
+      weekdays: ["Mondays", "Tuesdays", "Wednesdays", "Thursdays", "Fridays", "Saturdays", "Sundays"],
+      s_stations: "Fuel prices", s_stations_hint: "Pick the sensors that hold the price per litre of a station (for example a scrape sensor). Garagelog stores every price change.", s_station_name: "Station name", s_station_entity: "Price sensor", s_tank: "Tank size (litres)", s_station_err: "Fill in both a name and a sensor for every station.",
       tyres_live: "Tyre pressure now", tyres_hint: "No tyre pressures yet. Link the four tyre sensors under Settings.", tyres_log: "Tyre history (changes, repairs)", oil_checks: "Oil checks", oil_changes: "Oil changes",
       period: "Period", p_3: "Last 3 months", p_6: "Last 6 months", p_12: "Last 12 months", p_year: "This year", p_all: "All",
       total: "Total", c_refuel: "Fuel", c_service: "Maintenance", c_wash: "Washing", month: "Month", no_costs: "No costs in this period.",
@@ -67,6 +75,14 @@
       f_note: "Notitie", f_type: "Soort", f_cost: "Kosten", f_next_due_date: "Volgende beurt (datum)", f_next_due_odometer: "Volgende beurt bij (km)", f_level: "Peil",
       f_added_litres: "Bijgevuld (liters)", f_l100: "L/100 km",
       type_maintenance: "Onderhoudsbeurt", type_oil_change: "Olie verversen", type_tyres: "Banden", type_brakes: "Remmen", type_apk: "APK", type_repair: "Reparatie", type_other: "Overig",
+      fuelprices: "Brandstofprijzen", fp_none: "Nog geen tankstations. Voeg onder Instellingen → Brandstofprijzen de sensoren toe die een literprijs bevatten.", fp_na: "Niet beschikbaar", fp_cheapest: "Goedkoopste", fp_gap: "Grootste verschil", fp_same: "Zelfde prijs", fp_gap_text: (a, b) => `Goedkoper bij ${a} dan bij ${b}`,
+      fp_since: "sinds", fp_from: "van", fp_topup_full: "Een volle tank kost ongeveer", fp_topup_now: "Nu bijtanken kost ongeveer", fp_tank_size: "Tankinhoud", fp_liters_needed: (l, p, tank) => `Tank is ~${p}% vol, ongeveer ${l} L nodig van ${tank} L`,
+      fp_tank_setting: "Gebaseerd op de tankinhoud in de instellingen.", fp_tank_average: "Gebaseerd op je gemiddelde volle tankbeurt uit het tanklogboek.", fp_tank_default: "Aangenomen 50 L: stel de tankinhoud in bij de instellingen.",
+      fp_chart: "Prijsverloop", fp_gap_chart: "Grootste verschil in de tijd", fp_history: "Wijzigingen per station", fp_no_history: "Nog geen wijzigingen vastgelegd.", fp_tips: "Tips",
+      fp_trend_below: (n, pct, d) => `${n} zit ${pct}% onder het eigen gemiddelde van de afgelopen ${d} dagen: een goed moment om te tanken.`, fp_trend_above: (n, pct, d) => `${n} zit ${pct}% boven het eigen gemiddelde van de afgelopen ${d} dagen: wacht als het kan.`,
+      fp_best_day: (n, day, avg, gap) => `${day} zijn meestal het goedkoopst bij ${n} (gemiddeld ${avg}); de duurste dag ligt ${gap} hoger.`,
+      weekdays: ["maandagen", "dinsdagen", "woensdagen", "donderdagen", "vrijdagen", "zaterdagen", "zondagen"],
+      s_stations: "Brandstofprijzen", s_stations_hint: "Kies de sensoren met de literprijs van een tankstation (bijvoorbeeld een scrape-sensor). Garagelog bewaart elke prijswijziging.", s_station_name: "Naam station", s_station_entity: "Prijssensor", s_tank: "Tankinhoud (liters)", s_station_err: "Vul bij elk station zowel een naam als een sensor in.",
       tyres_live: "Bandenspanning nu", tyres_hint: "Nog geen bandenspanning. Koppel de vier bandensensoren onder Instellingen.", tyres_log: "Bandengeschiedenis (wissel, reparatie)", oil_checks: "Olie-peilingen", oil_changes: "Olieverversingen",
       period: "Periode", p_3: "Laatste 3 maanden", p_6: "Laatste 6 maanden", p_12: "Laatste 12 maanden", p_year: "Dit jaar", p_all: "Alles",
       total: "Totaal", c_refuel: "Tanken", c_service: "Onderhoud", c_wash: "Wassen", month: "Maand", no_costs: "Geen kosten in deze periode.",
@@ -99,7 +115,7 @@
 
   const OIL_TYPES = ["oil_change"];
   const SERVICE_TYPES = ["maintenance", "brakes", "apk", "repair", "other"];
-  const TABS = ["overview", "refuels", "services", "washes", "tyres", "oil", "costs", "settings"];
+  const TABS = ["overview", "refuels", "fuelprices", "services", "washes", "tyres", "oil", "costs", "settings"];
 
   /** Field specs of the add/edit forms: [key, kind, step, required] */
   const FORMS = {
@@ -230,6 +246,14 @@
         button.btn.small { padding: 2px 10px; font-size: 13px; } button.btn.danger { color: var(--error-color, #db4437); }
         .empty { color: var(--secondary-text-color); padding: 12px 0; }
         .sources td:nth-child(2) { font-weight: 500; }
+        .stations { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; margin-bottom: 16px; }
+        .station { border: 1px solid var(--divider-color, #ddd); border-radius: 12px; padding: 12px; } .station.best { border-color: var(--success-color, #43a047); }
+        .station .l { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--secondary-text-color); }
+        .station .price { font-size: 26px; font-weight: 500; margin: 4px 0; } .station.best .price { color: var(--success-color, #43a047); }
+        .badge { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 8px; } .badge.up { color: var(--error-color, #db4437); background: color-mix(in srgb, var(--error-color, #db4437) 12%, transparent); } .badge.down { color: var(--success-color, #43a047); background: color-mix(in srgb, var(--success-color, #43a047) 12%, transparent); }
+        .topups { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; margin-top: 10px; } .topups .cost { font-size: 22px; font-weight: 500; } .topups .best .cost { color: var(--success-color, #43a047); }
+        .tips p { margin: 6px 0; font-size: 14px; } details.hist summary { cursor: pointer; padding: 6px 0; font-weight: 500; }
+        .fprow { display: grid; grid-template-columns: 1fr 1.4fr; gap: 8px; margin-bottom: 8px; }
         .wheels { display: grid; grid-template-columns: 1fr auto 1fr; grid-template-areas: "fl car fr" "rl car rr"; align-items: center; gap: 14px 12px; max-width: 380px; margin: 0 auto; }
         .wheels .tile { text-align: center; border-left: 0; border: 1px solid var(--divider-color, #ddd); border-radius: 12px; padding: 10px 6px; }
         .wheels .tile.ok { border-color: var(--success-color, #43a047); } .wheels .tile.bad { border-color: var(--warning-color, #ffa000); background: color-mix(in srgb, var(--warning-color, #ffa000) 12%, transparent); }
@@ -490,6 +514,84 @@
         <div class="scroll"><table><thead><tr><th>${esc(t.month)}</th><th class="num">${esc(t.c_refuel)}</th><th class="num">${esc(t.c_service)}</th><th class="num">${esc(t.c_wash)}</th><th class="num">${esc(t.total)}</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
     }
 
+    // ---------------------------------------------------------------- fuel prices
+    _tank() {
+      const tank = this._snap.view.fuel_prices.tank, typed = parseFloat(String(this._tankInput || "").replace(",", "."));
+      return typed > 0 ? { liters: typed, typed: true, fuel_percent: tank.fuel_percent } : tank;
+    }
+
+    _topupHtml() {
+      const t = this.t, fp = this._snap.view.fuel_prices, tank = this._tank(), pct = tank.fuel_percent;
+      const rows = fp.stations.filter((st) => st.price != null).map((st) => ({ st, cost: st.price * (pct == null ? tank.liters : Math.max(tank.liters * (1 - Math.min(100, Math.max(0, pct)) / 100), 0)) }));
+      const low = rows.length > 1 ? Math.min(...rows.map((r) => r.cost)) : null;
+      const needed = pct == null ? tank.liters : Math.max(tank.liters * (1 - Math.min(100, Math.max(0, pct)) / 100), 0);
+      const info = pct == null ? "" : `<div class="hint">${esc(t.fp_liters_needed(this._num(needed, 0), this._num(pct, 0), this._num(tank.liters, 0)))}</div>`;
+      const src = tank.typed ? "" : `<div class="hint">${esc(t["fp_tank_" + tank.source])}</div>`;
+      return `<div class="topups">${rows.map((r) => `<div class="${r.cost === low ? "best" : ""}"><div class="l">${esc(r.st.name)}</div><div class="cost">${esc(this._money(r.cost))}</div></div>`).join("")}</div>${info}${src}`;
+    }
+
+    _badge(change) {
+      const t = this.t;
+      if (!change || !change.direction || change.direction === "same" || change.delta == null) return "";
+      const up = change.direction === "up", since = change.since ? ` · ${esc(t.fp_since)} ${esc(fmtDate(change.since))}` : "";
+      return `<span class="badge ${up ? "up" : "down"}">${up ? "▲" : "▼"} ${this._num(Math.abs(change.delta), 3)} <small>${esc(t.fp_from)} ${this._num(change.previous, 3)}${since}</small></span>`;
+    }
+
+    _priceChart(history, stations, id = "pricechart") {
+      const t = this.t, now = Date.parse(this._snap.now), W = 640, H = 240, L = 48, R = 12, T = 12, B = 28;
+      const colors = ["#2f9e44", "#2f6fed", "#7048e8", "#e64980", "#e8590c", "#0c8599", "#a61e4d", "#5c940d"];
+      const series = stations.map((st, i) => ({ st, color: colors[i % colors.length], pts: [...(history[st.entity_id] || [])].reverse().map((e) => ({ t: Date.parse(e.at), v: e.price })) })).filter((x) => x.pts.length);
+      if (!series.length) return `<div class="empty">${esc(t.fp_no_history)}</div>`;
+      const all = series.flatMap((x) => x.pts), t0 = Math.min(...all.map((p) => p.t)), t1 = Math.max(now, ...all.map((p) => p.t));
+      let lo = Math.min(...all.map((p) => p.v)), hi = Math.max(...all.map((p) => p.v));
+      const pad = Math.max((hi - lo) * 0.15, 0.01); lo -= pad; hi += pad;
+      const x = (ms) => L + ((ms - t0) / Math.max(t1 - t0, 1)) * (W - L - R), y = (v) => T + (1 - (v - lo) / (hi - lo)) * (H - T - B);
+      let svg = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" id="${id}">`;
+      for (let i = 0; i <= 4; i++) { const v = lo + ((hi - lo) * i) / 4; svg += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--divider-color,#ddd)"/><text x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${this._num(v, 3)}</text>`; }
+      for (const { st, color, pts } of series) {
+        let d = "";
+        pts.forEach((p, i) => { d += `${i ? "L" : "M"}${x(p.t)},${y(pts[i - 1] ? pts[i - 1].v : p.v)} L${x(p.t)},${y(p.v)} `; });
+        d += `L${x(t1)},${y(pts[pts.length - 1].v)}`;
+        svg += `<path class="line" data-line="${esc(st.entity_id)}" d="${d}" fill="none" stroke="${color}" stroke-width="2"/>`;
+        svg += pts.map((p) => `<circle cx="${x(p.t)}" cy="${y(p.v)}" r="3" fill="${color}"><title>${esc(st.name)} · ${esc(fmtDate(new Date(p.t).toISOString()))}: ${this._num(p.v, 3)}</title></circle>`).join("");
+      }
+      for (const [ms, anchor] of [[t0, "start"], [t1, "end"]]) svg += `<text x="${x(ms)}" y="${H - 8}" text-anchor="${anchor}">${esc(fmtDate(new Date(ms).toISOString()))}</text>`;
+      return `${svg}</svg><div class="legend">${series.map((x2) => `<span><i style="background:${x2.color}"></i>${esc(x2.st.name)}</span>`).join("")}</div>`;
+    }
+
+    _historyList(title, entries, fmt) {
+      const t = this.t;
+      if (!entries || !entries.length) return `<details class="hist"><summary>${esc(title)}</summary><div class="empty">${esc(t.fp_no_history)}</div></details>`;
+      const rows = entries.map((e, i) => {
+        const prev = entries[i + 1], delta = prev ? Math.round((e.price - prev.price) * 1000) / 1000 : null;
+        return `<tr><td>${esc(fmtDate(e.at))}</td><td class="num">${esc(fmt(e.price))}</td><td class="num">${delta ? `<span class="badge ${delta > 0 ? "up" : "down"}">${delta > 0 ? "▲" : "▼"} ${this._num(Math.abs(delta), 3)}</span>` : ""}</td></tr>`;
+      }).join("");
+      return `<details class="hist" data-hist="${esc(title)}"><summary>${esc(title)} (${entries.length})</summary><div class="scroll"><table><tbody>${rows}</tbody></table></div></details>`;
+    }
+
+    _tab_fuelprices() {
+      const t = this.t, s = this._snap, fp = s.view.fuel_prices, history = s.price_history || {};
+      if (!fp.stations.length) return `<div class="card"><div class="empty" id="nostations">${esc(t.fp_none)}</div></div>`;
+      const best = fp.cheapest ? fp.cheapest.name : null;
+      const cards = fp.stations.map((st) => `<div class="station ${st.name === best && fp.stations.length > 1 ? "best" : ""}" data-station="${esc(st.entity_id)}"><div class="l">${esc(st.name)}</div>
+        ${st.price != null ? `<div class="price">${this._num(st.price, 3)} <small>/ L</small></div>${this._badge(st.change)}` : `<div class="empty">${esc(t.fp_na)}</div>`}</div>`).join("");
+      const g = fp.gap;
+      const gapCard = `<div class="station" id="gapcard"><div class="l">${esc(t.fp_gap)}</div>${g ? `<div class="price">${this._num(g.value, 3)}</div>${g.delta ? `<span class="badge ${g.delta > 0 ? "up" : "down"}">${g.delta > 0 ? "▲" : "▼"} ${this._num(Math.abs(g.delta), 3)}</span>` : ""}<div class="hint">${esc(t.fp_gap_text(g.cheapest, g.priciest))}</div>` : `<div class="empty">${esc(t.fp_na)}</div>`}</div>`;
+      const tips = [];
+      for (const st of fp.stations) {
+        if (st.trend) tips.push(st.trend.pct < 0 ? t.fp_trend_below(st.name, this._num(Math.abs(st.trend.pct), 1), st.trend.days) : t.fp_trend_above(st.name, this._num(st.trend.pct, 1), st.trend.days));
+        if (st.best_day) tips.push(t.fp_best_day(st.name, t.weekdays[st.best_day.cheapest].replace(/^./, (c) => c.toUpperCase()), this._num(st.best_day.cheapest_average, 3), this._num(st.best_day.gap, 3)));
+      }
+      const title = s.view.fuel_prices.tank && fp.tank.fuel_percent != null ? t.fp_topup_now : t.fp_topup_full;
+      const tankVal = this._tankInput ?? "";
+      return `<div class="stations" id="stations">${cards}${gapCard}</div>
+        <div class="card"><div class="bar"><h2 style="margin:0">${esc(title)}</h2><label>${esc(t.fp_tank_size)}: <input id="tank-liters" type="text" inputmode="decimal" size="5" placeholder="${esc(this._num(fp.tank.liters, 1))}" value="${esc(tankVal)}"> L</label></div><div id="topup">${this._topupHtml()}</div></div>
+        ${tips.length ? `<div class="card tips" id="tips"><h2>${esc(t.fp_tips)}</h2>${tips.map((x) => `<p>💡 ${esc(x)}</p>`).join("")}</div>` : ""}
+        <div class="card"><h2>${esc(t.fp_chart)}</h2>${this._priceChart(history, fp.stations)}</div>
+        ${g ? `<div class="card"><h2>${esc(t.fp_gap_chart)}</h2>${this._priceChart({ gap: history.gap || [] }, [{ entity_id: "gap", name: t.fp_gap }], "gapchart")}</div>` : ""}
+        <div class="card"><h2>${esc(t.fp_history)}</h2>${fp.stations.map((st) => this._historyList(st.name, history[st.entity_id], (n) => this._num(n, 3))).join("")}${g ? this._historyList(t.fp_gap, history.gap, (n) => this._num(n, 3)) : ""}</div>`;
+    }
+
     // ---------------------------------------------------------------- settings
     _tab_settings() {
       const t = this.t, st = this._snap.settings, dis = this.isAdmin ? "" : "disabled";
@@ -502,6 +604,8 @@
         ? this._notifyTargets.map((x) => `<label><input type="checkbox" name="target" value="${esc(x.value)}" ${keep.has(x.value) ? "checked" : ""} ${dis}> ${esc(x.label)}</label>`).join("")
         : `<div class="empty">${esc(t.s_notify_none)}</div>`;
       const tyres = [0, 1, 2, 3].map((i) => ent(`tyre_${i}`, `${t.s_tyre} ${i + 1}`, st.tyre_entities[i])).join("");
+      const stationList = st.fuel_stations || [];
+      const stationRows = Array.from({ length: 6 }, (_, i) => `<div class="fprow"><input type="text" name="fs_name_${i}" placeholder="${esc(t.s_station_name)}" value="${esc(stationList[i]?.name || "")}" ${dis} maxlength="40"><input type="text" list="entlist" name="fs_entity_${i}" placeholder="${esc(t.s_station_entity)}" value="${esc(stationList[i]?.entity_id || "")}" ${dis} autocomplete="off"></div>`).join("");
       return `<form id="settings-form" class="settings">
         ${this.isAdmin ? "" : `<div class="alert">${esc(t.s_admin_only)}</div>`}
         <div class="card"><h2>${esc(t.s_notify)}</h2><div class="targets">${targets}</div></div>
@@ -515,6 +619,8 @@
         <div class="card"><h2>${esc(t.s_sources)}</h2><div class="settings-grid">
           ${ent("odometer_entity", t.s_odometer, st.odometer_entity)}${ent("fuel_level_entity", t.s_fuel, st.fuel_level_entity)}${ent("oil_life_entity", t.s_oil_life, st.oil_life_entity)}${tyres}
         </div>${list}</div>
+        <div class="card"><h2>${esc(t.s_stations)}</h2><div class="hint">${esc(t.s_stations_hint)}</div>${stationRows}
+          <div class="settings-grid">${num("tank_capacity_l", t.s_tank, st.tank_capacity_l, "0.1")}</div></div>
         <div class="card"><h2>${esc(t.s_panel)}</h2><label class="field check"><input type="checkbox" name="panel_admin_only" ${st.panel_admin_only ? "checked" : ""} ${dis}> ${esc(t.s_admin)}</label>
           <div class="hint">${esc(t.s_more)}</div></div>
         <div class="err" id="settings-err"></div>
@@ -534,7 +640,15 @@
       const apk = apkText ? parseDate(apkText) : null;
       if (apkText && !apk) { err.textContent = t.invalid_date; return; }
       const str = (k) => String(f.get(k) || "").trim() || null;
+      const fuelStations = [];
+      for (let i = 0; i < 6; i++) {
+        const name = str(`fs_name_${i}`), entity = str(`fs_entity_${i}`);
+        if (!name && !entity) continue;
+        if (!name || !entity) { err.textContent = t.s_station_err; return; }
+        fuelStations.push({ name, entity_id: entity });
+      }
       const settings = {
+        fuel_stations: fuelStations, tank_capacity_l: num("tank_capacity_l"),
         tyre_target_bar: num("tyre_target_bar"), tyre_threshold_bar: num("tyre_threshold_bar"), wash_soon_days: num("wash_soon_days"), wash_due_days: num("wash_due_days"),
         apk_days: num("apk_days"), oil_check_day: num("oil_check_day"), service_interval_km: num("service_interval_km"), service_interval_days: num("service_interval_days"),
         apk_date: apk, odometer_entity: str("odometer_entity"), fuel_level_entity: str("fuel_level_entity"), oil_life_entity: str("oil_life_entity"),
@@ -643,6 +757,11 @@
       const el = ev.target;
       if (el.dataset && el.dataset.mask === "date") el.value = maskDate(el.value);
       if (el.closest && el.closest("#settings-form")) this._dirty = true;
+      if (el.id === "tank-liters") {
+        this._tankInput = el.value;
+        const box = this.shadowRoot.getElementById("topup");
+        if (box) box.innerHTML = this._topupHtml();
+      }
     }
     _onChange(ev) {
       const el = ev.target;

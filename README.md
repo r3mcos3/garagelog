@@ -20,6 +20,10 @@ and oil, in one standalone integration. No cloud account, no app, no server: eve
 - **Costs:** total, this year, this month, average per month.
 - **Reminders** are events (`garagelog_apk_due`, `garagelog_service_due`, `garagelog_wash_due`, `garagelog_tyre_pressure`,
   `garagelog_oil_check_due`, `garagelog_oil_change_due`) and messages to the notify targets you choose (Telegram, phone, ...).
+- **Fuel prices** (0.3.0): pick the sensors that hold a station's price per litre (for example scrape sensors) under Settings. The panel tab
+  "Fuel prices" shows every station with its last price change, the cheapest station and the gap, what filling up costs per station (with the car's
+  tank size and fuel level), a price history chart, hints (price vs. its own average, cheapest weekday) and the changes per station. Only price
+  changes are stored (one year). Sensor `cheapest_fuel_price` for automations.
 - A **sidebar panel** "Garagelog" (icon `mdi:car`): a full page per vehicle with an overview (warnings, APK, next service, last refuel,
   consumption, costs, live source values, tyre pressure per wheel shown on a car outline, oil life), log tabs (fuel, maintenance, washing, tyres, oil) with add / edit /
   delete, a cost tab with a stacked monthly chart and a period filter, and a settings tab. Several vehicles are chosen in the header; on a phone
