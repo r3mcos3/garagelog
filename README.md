@@ -3,7 +3,7 @@
 **Garagelog: car management for Home Assistant** — fuel log, consumption and costs, maintenance, APK, washing, tyre pressure
 and oil, in one standalone integration. No cloud account, no app, no server: everything is stored in Home Assistant.
 
-> Working name. Status: **0.1.0, not published, not yet tried on a real Home Assistant.** See `docs/testen.md`.
+> Status: **0.1.0, first release, only tried in automated tests so far.** See `docs/testen.md`.
 
 ## What it does
 
@@ -53,3 +53,7 @@ Single currency (the Home Assistant currency); no export/import service yet (for
 from the fuel level; no sidebar panel. The oil-change figure is an extrapolation, not a measurement.
 
 Design: `docs/ontwerp.md`. Why this exists next to Vehicle Log and others: `docs/vergelijking.md`.
+
+## License
+
+MIT, see `LICENSE`.
