@@ -84,3 +84,11 @@ integratie) zet de Supabase-tabellen om naar dit formaat; import is idempotent o
 ## Mijlpalen
 M1 voertuig + config flow + RDW + km-bron · M2 tanklog · M3 onderhoud + APK + herinneringen · M4 wassen, banden, olie ·
 M5 kostensensoren · M6 kaart + browsertests · later: export/import-service, tankbeurt-detectie uit niveau, zijbalkpaneel.
+
+## Stand 0.1.0 (lokaal gebouwd, nog niet gepubliceerd)
+Gebouwd: M1–M6 (voertuig + RDW + bronnen, tanklog, onderhoud + APK, wassen/banden/olie, kostensensoren, kaart). Afwijkingen van dit ontwerp:
+- `remove_record` (collection + id) in plaats van `remove_entry`; `log_odometer` is niet gebouwd (km-stand komt uit de bron of uit de logs).
+- `export_data` / `import_data` zijn **nog niet gebouwd**; het formaat hierboven staat vast voor later.
+- Optie `apk_date` (handmatig) voor auto's zonder RDW-gegevens.
+- Kaart toont status en heeft snelknoppen; geen zijbalkpaneel en geen grafiek.
+- Alle bedragen in de HA-valuta (één valuta per installatie).
