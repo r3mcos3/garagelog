@@ -266,6 +266,8 @@
         .empty { color: var(--secondary-text-color); padding: 12px 0; }
         .sources td:nth-child(2) { font-weight: 500; }
         .rtiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin: 12px 0; } .rtile { border: 1px solid var(--divider-color, #ddd); border-radius: 12px; padding: 10px; } .rtile .l { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--secondary-text-color); } .rtile .v { font-size: 22px; font-weight: 500; margin-top: 4px; }
+        .acw { position: relative; min-width: 0; } .acbox { position: absolute; left: 0; right: 0; top: 100%; z-index: 20; background: var(--card-background-color, #fff); border: 1px solid var(--divider-color, #ccc); border-radius: 8px; box-shadow: 0 4px 14px rgba(0,0,0,.25); overflow: hidden; }
+        .acopt { padding: 9px 12px; cursor: pointer; font-size: 14px; color: var(--primary-text-color); border-bottom: 1px solid var(--divider-color, #eee); } .acopt:last-child { border-bottom: 0; } .acopt small { display: block; font-size: 11px; color: var(--secondary-text-color); overflow-wrap: anywhere; }
         .stop { padding: 8px 0; border-bottom: 1px solid var(--divider-color, #ddd); } .stop .l { font-size: 12px; color: var(--secondary-text-color); }
         .stations { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; margin-bottom: 16px; }
         .station { border: 1px solid var(--divider-color, #ddd); border-radius: 12px; padding: 12px; } .station.best { border-color: var(--success-color, #43a047); }
@@ -320,6 +322,9 @@
         this._shell = true;
         sr.addEventListener("click", (ev) => this._onClick(ev));
         sr.addEventListener("input", (ev) => this._onInput(ev));
+        sr.addEventListener("focusin", (ev) => this._acShow(ev.target));
+        sr.addEventListener("focusout", (ev) => { if (ev.target && ev.target.dataset && ev.target.dataset.ac) setTimeout(() => this._acHide(), 150); });
+        sr.addEventListener("pointerdown", (ev) => this._acPick(ev));
         sr.addEventListener("change", (ev) => this._onChange(ev));
         sr.addEventListener("submit", (ev) => this._onSubmit(ev));
       }
@@ -813,20 +818,15 @@
     _tab_settings() {
       const t = this.t, st = this._snap.settings, dis = this.isAdmin ? "" : "disabled";
       const num = (k, label, val, step = "1") => `<label class="field">${esc(label)}<input type="number" step="${step}" name="${k}" value="${esc(val ?? "")}" ${dis}></label>`;
-      const ents = this._hass ? Object.keys(this._hass.states || {}).filter((e) => /^(sensor|number|input_number|device_tracker|person)\./.test(e)).sort() : [];
-      // price sensors: only entities that hold a plausible price per litre, labelled with their name
-      const states = (this._hass && this._hass.states) || {};
-      const prices = ents.filter((e) => { const v = parseFloat(states[e] && states[e].state); return /^(sensor|input_number)\./.test(e) && v >= 0.3 && v <= 10; });
-      const label = (e) => esc((states[e] && states[e].attributes && states[e].attributes.friendly_name) || "");
-      const list = `<datalist id="entlist">${ents.map((e) => `<option value="${esc(e)}">`).join("")}</datalist><datalist id="pricelist">${prices.map((e) => `<option value="${esc(e)}" label="${label(e)}">`).join("")}</datalist>`;
-      const ent = (k, label, val) => `<label class="field">${esc(label)}<input type="text" list="entlist" name="${k}" value="${esc(val || "")}" ${dis} autocomplete="off"></label>`;
+      const ac = (k, kind, placeholder, val) => `<div class="acw"><input type="text" data-ac="${kind}" name="${k}" ${placeholder ? `placeholder="${esc(placeholder)}"` : ""} value="${esc(val || "")}" ${dis} autocomplete="off" autocapitalize="off" spellcheck="false"></div>`;
+      const ent = (k, label, val, kind = "sensor") => `<label class="field">${esc(label)}${ac(k, kind, "", val)}</label>`;
       const keep = new Set(st.notify_targets);
       const targets = this._notifyTargets.length
         ? this._notifyTargets.map((x) => `<label><input type="checkbox" name="target" value="${esc(x.value)}" ${keep.has(x.value) ? "checked" : ""} ${dis}> ${esc(x.label)}</label>`).join("")
         : `<div class="empty">${esc(t.s_notify_none)}</div>`;
       const tyres = [0, 1, 2, 3].map((i) => ent(`tyre_${i}`, `${t.s_tyre} ${i + 1}`, st.tyre_entities[i])).join("");
       const stationList = st.fuel_stations || [];
-      const stationRows = Array.from({ length: 6 }, (_, i) => `<div class="fprow"><input type="text" name="fs_name_${i}" placeholder="${esc(t.s_station_name)}" value="${esc(stationList[i]?.name || "")}" ${dis} maxlength="40"><input type="text" list="pricelist" name="fs_entity_${i}" placeholder="${esc(t.s_station_entity)}" value="${esc(stationList[i]?.entity_id || "")}" ${dis} autocomplete="off"><input type="text" list="entlist" name="fs_info_${i}" placeholder="${esc(t.s_station_info)}" value="${esc(stationList[i]?.info_entity_id || "")}" ${dis} autocomplete="off"></div>`).join("");
+      const stationRows = Array.from({ length: 6 }, (_, i) => `<div class="fprow"><input type="text" name="fs_name_${i}" placeholder="${esc(t.s_station_name)}" value="${esc(stationList[i]?.name || "")}" ${dis} maxlength="40">${ac(`fs_entity_${i}`, "price", t.s_station_entity, stationList[i]?.entity_id)}${ac(`fs_info_${i}`, "sensor", t.s_station_info, stationList[i]?.info_entity_id)}</div>`).join("");
       return `<form id="settings-form" class="settings">
         ${this.isAdmin ? "" : `<div class="alert">${esc(t.s_admin_only)}</div>`}
         <div class="card"><h2>${esc(t.s_notify)}</h2><div class="targets">${targets}</div></div>
@@ -838,8 +838,8 @@
           <label class="field">${esc(t.s_apk_date)}<input type="text" inputmode="numeric" maxlength="10" data-mask="date" name="apk_date" placeholder="${esc(t.date_ph)}" value="${esc(fmtDate(st.apk_date))}" ${dis}></label>
         </div></div>
         <div class="card"><h2>${esc(t.s_sources)}</h2><div class="settings-grid">
-          ${ent("odometer_entity", t.s_odometer, st.odometer_entity)}${ent("fuel_level_entity", t.s_fuel, st.fuel_level_entity)}${ent("oil_life_entity", t.s_oil_life, st.oil_life_entity)}${ent("location_entity", t.s_location, st.location_entity)}${tyres}
-        </div>${list}</div>
+          ${ent("odometer_entity", t.s_odometer, st.odometer_entity)}${ent("fuel_level_entity", t.s_fuel, st.fuel_level_entity)}${ent("oil_life_entity", t.s_oil_life, st.oil_life_entity)}${ent("location_entity", t.s_location, st.location_entity, "tracker")}${tyres}
+        </div></div>
         <div class="card"><h2>${esc(t.s_stations)}</h2><div class="hint">${esc(t.s_stations_hint)}</div>${stationRows}
           <div class="settings-grid">${num("tank_capacity_l", t.s_tank, st.tank_capacity_l, "0.1")}${num("fuel_price_notify_min", t.s_fuel_notify_min, st.fuel_price_notify_min, "0.001")}</div>
           </div>
@@ -978,8 +978,44 @@
       if (el.dataset.delYes) { this._deleteRecord(el.dataset.delYes); return; }
       if (el.id === "modal-cancel") this._closeModal();
     }
+    // ---- entity suggestions (filtered, at most 6, with the friendly name)
+    _acCandidates(kind) {
+      const states = (this._hass && this._hass.states) || {};
+      const re = kind === "tracker" ? /^(device_tracker|person)\./ : /^(sensor|number|input_number)\./;
+      let ids = Object.keys(states).filter((e) => re.test(e)).sort();
+      if (kind === "price") ids = ids.filter((e) => { const v = parseFloat(states[e] && states[e].state); return /^(sensor|input_number)\./.test(e) && v >= 0.3 && v <= 10; });
+      return ids.map((id) => ({ id, name: (states[id] && states[id].attributes && states[id].attributes.friendly_name) || "" }));
+    }
+
+    _acShow(el) {
+      if (!el || !el.dataset || !el.dataset.ac || el.disabled) return;
+      this._acHide();
+      const words = String(el.value || "").toLowerCase().split(/\s+/).filter(Boolean);
+      const hits = this._acCandidates(el.dataset.ac).filter((c) => words.every((w) => (c.id + " " + c.name).toLowerCase().includes(w))).slice(0, 6);
+      if (!hits.length) return;
+      const box = document.createElement("div");
+      box.className = "acbox";
+      box.innerHTML = hits.map((c) => `<div class="acopt" data-id="${esc(c.id)}"><div>${esc(c.name || c.id)}</div>${c.name ? `<small>${esc(c.id)}</small>` : ""}</div>`).join("");
+      el.parentNode.appendChild(box);
+      this._acBox = box;
+      if (box.scrollIntoView) box.scrollIntoView({ block: "nearest" });
+    }
+
+    _acHide() { if (this._acBox) { this._acBox.remove(); this._acBox = null; } }
+
+    _acPick(ev) {
+      const opt = ev.target.closest && ev.target.closest(".acopt");
+      if (!opt) return;
+      ev.preventDefault();
+      const input = opt.closest(".acw").querySelector("input");
+      input.value = opt.dataset.id;
+      this._dirty = true;
+      this._acHide();
+    }
+
     _onInput(ev) {
       const el = ev.target;
+      if (el.dataset && el.dataset.ac) this._acShow(el);
       if (el.dataset && el.dataset.mask === "date") el.value = maskDate(el.value);
       if (el.closest && el.closest("#settings-form")) this._dirty = true;
       if (el.id === "tank-liters") {

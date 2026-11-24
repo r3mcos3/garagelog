@@ -9,7 +9,7 @@
     const unsubs = [];
     const hass = {
       language: "en", user: { is_admin: true },
-      states: { "sensor.car_odometer": {}, "sensor.car_fuel": {}, "light.x": {}, "sensor.euro95_poppel": { state: "1.819", attributes: { friendly_name: "Euro95 Poppel" } }, "sensor.temperature": { state: "21.5", attributes: {} } },
+      states: { "sensor.car_odometer": {}, "sensor.car_fuel": {}, "light.x": {}, "sensor.euro95_poppel": { state: "1.819", attributes: { friendly_name: "Euro95 Poppel" } }, "sensor.temperature": { state: "21.5", attributes: {} }, "device_tracker.car": { state: "home", attributes: {} } },
       connection: {
         sendMessagePromise: async (msg) => {
           sent.push(msg);
@@ -213,8 +213,23 @@
     const sf = () => $("#settings-form");
     R.settings_prefilled = sf().elements.tyre_target_bar.value === "2.5" && sf().elements.odometer_entity.value === "sensor.car_odometer" && sf().elements.tyre_0.value === "sensor.t0" && sf().elements.tyre_3.value === "";
     R.targets = $$(".targets input").length === 2 && $$(".targets input:checked").length === 1 && $(".targets").textContent.includes("Telegram");
-    R.datalist = $$("#entlist option").length === 4;
-    R.price_datalist = $$("#pricelist option").length === 1 && $("#pricelist option").value === "sensor.euro95_poppel" && $("#pricelist option").label === "Euro95 Poppel" && sf().elements.fs_entity_0.getAttribute("list") === "pricelist";
+    R.no_native_datalist = $$("datalist").length === 0;
+    const fe = sf().elements.fs_entity_0;
+    fe.value = ""; fe.dispatchEvent(new Event("input", { bubbles: true }));
+    R.ac_price = $$(".acbox .acopt").length === 1 && $(".acbox .acopt").dataset.id === "sensor.euro95_poppel" && $(".acbox").textContent.includes("Euro95 Poppel");
+    $(".acbox .acopt").dispatchEvent(new Event("pointerdown", { bubbles: true, cancelable: true }));
+    R.ac_pick = fe.value === "sensor.euro95_poppel" && $$(".acbox").length === 0;
+    const oe = sf().elements.odometer_entity, odo0 = oe.value;
+    oe.value = "car"; oe.dispatchEvent(new Event("input", { bubbles: true }));
+    R.ac_filter = $$(".acbox .acopt").length === 2 && !$(".acbox").textContent.includes("euro95");
+    oe.value = "zzz"; oe.dispatchEvent(new Event("input", { bubbles: true }));
+    R.ac_none = $$(".acbox").length === 0;
+    oe.value = odo0;
+    const le = sf().elements.location_entity;
+    le.value = ""; le.dispatchEvent(new Event("input", { bubbles: true }));
+    R.ac_tracker = $$(".acbox .acopt").length === 1 && $(".acbox .acopt").dataset.id === "device_tracker.car";
+    le.value = "device_tracker.car";
+    sf().elements.fs_entity_0.value = "sensor.fuel_tb";
     sf().elements.tyre_target_bar.value = "2.4";
     sf().elements.tyre_target_bar.dispatchEvent(new Event("input", { bubbles: true }));
     sf().elements.apk_date.value = "99-99-2026";
