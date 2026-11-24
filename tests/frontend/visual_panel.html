@@ -8,7 +8,6 @@ garagelog-panel{display:block;height:100%}</style></head>
 <script src="panel_data.js"></script>
 <script>
 const params = new URLSearchParams(location.hash.slice(1));
-try { localStorage.setItem("garagelog_tab", params.get("tab") || "overview"); } catch (e) {}
 const panel = document.createElement("garagelog-panel");
 document.body.appendChild(panel);
 panel.narrow = params.get("narrow") === "1";
@@ -18,5 +17,6 @@ panel.hass = { language: params.get("lang") || "nl", user: { is_admin: true }, s
     sendMessagePromise: async (m) => m.type === "garagelog/vehicles" ? [{ entry_id: "e1", title: "Ford Kuga (AB123C)" }, { entry_id: "e2", title: "Fiat Panda" }] : [{ value: "entity:notify.telegram", label: "Telegram · Bot" }, { value: "service:mobile_app_phone", label: "notify.mobile_app_phone" }],
     subscribeMessage: async (c) => { setTimeout(() => c(window.mockSnapshot("e1")), 0); return () => {}; },
   } };
+if (params.get("tab")) setTimeout(() => { const b = panel.shadowRoot.querySelector(`[data-tab="${params.get("tab")}"]`); if (b) b.click(); }, 50);
 if (params.get("modal")) setTimeout(() => panel.shadowRoot.querySelector("[data-add]").click(), 100);
 </script></body></html>

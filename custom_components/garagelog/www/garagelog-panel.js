@@ -151,7 +151,7 @@
       this._vehicles = null;
       this._entryId = null;
       this._snap = null;
-      this._tab = this._load("tab") || "overview";
+      this._tab = "overview"; // always open on the overview page
       this._period = "12";
       this._modal = null;
       this._confirm = null;
@@ -968,7 +968,7 @@
       if (el.id === "report-print") { this._printReport(); return; }
       if (el.id === "menu") { this.dispatchEvent(new Event("hass-toggle-menu", { bubbles: true, composed: true })); return; }
       if (el.dataset.tab) {
-        this._tab = el.dataset.tab; this._store("tab", this._tab); this._dirty = false; this._confirm = null; this._render();
+        this._tab = el.dataset.tab; this._dirty = false; this._confirm = null; this._render();
         if (this._tab === "settings") this._loadTargets();
         return;
       }
