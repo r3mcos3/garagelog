@@ -40,7 +40,7 @@ window.mockSnapshot = (entryId = "e1", o = {}) => ({
     { month: "2026-10", refuel: 130, service: 0, wash: 20 }, { month: "2026-11", refuel: 75.2, service: 0, wash: 12 },
   ],
   price_history: {
-    "sensor.fuel_tb": [{ price: 1.859, at: "2026-11-10T08:00:00+00:00" }, { price: 1.889, at: "2026-10-20T08:00:00+00:00" }, { price: 1.92, at: "2026-10-01T08:00:00+00:00" }],
+    "sensor.fuel_tb": [{ price: 1.859, at: "2026-11-10T08:00:00+00:00", info: "Shell Baroniebaan, Baroniebaan 2, 5037LZ" }, { price: 1.889, at: "2026-10-20T08:00:00+00:00" }, { price: 1.92, at: "2026-10-01T08:00:00+00:00" }],
     "sensor.fuel_pp": [{ price: 1.929, at: "2026-11-12T08:00:00+00:00" }, { price: 1.9, at: "2026-10-05T08:00:00+00:00" }],
     gap: [{ price: 0.07, at: "2026-11-12T08:00:00+00:00" }, { price: 0.05, at: "2026-11-10T08:00:00+00:00" }],
   },

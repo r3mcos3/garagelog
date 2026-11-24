@@ -113,12 +113,15 @@ class VehicleStore:
     def price_log(self, key: str) -> list[dict[str, Any]]:
         return self.data[FUEL_PRICES].get(key, [])
 
-    def log_price(self, key: str, price: float, now: datetime) -> bool:
-        """Append ``price`` when it differs from the last logged one; prune entries older than a year."""
+    def log_price(self, key: str, price: float, now: datetime, info: str | None = None) -> bool:
+        """Append ``price`` when it (or the station ``info`` text, if any) differs from the last logged one.
+
+        Entries older than a year are pruned.
+        """
         log = self.data[FUEL_PRICES].setdefault(key, [])
-        if log and log[-1]["price"] == price:
+        if log and log[-1]["price"] == price and (info is None or log[-1].get("info") == info):
             return False
-        log.append({"price": price, "at": now.isoformat()})
+        log.append({"price": price, "at": now.isoformat(), **({"info": info} if info else {})})
         cutoff = (now - timedelta(days=PRICE_RETENTION_DAYS)).isoformat()
         while len(log) > 1 and log[1]["at"] < cutoff:
             log.pop(0)  # keep one entry before the cutoff: it is the price that was still in effect

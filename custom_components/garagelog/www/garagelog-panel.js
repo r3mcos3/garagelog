@@ -567,7 +567,7 @@
       if (!entries || !entries.length) return `<details class="hist"><summary>${esc(title)}</summary><div class="empty">${esc(t.fp_no_history)}</div></details>`;
       const rows = entries.map((e, i) => {
         const prev = entries[i + 1], delta = prev ? Math.round((e.price - prev.price) * 1000) / 1000 : null;
-        return `<tr><td>${esc(fmtDate(e.at))}</td><td class="num">${esc(fmt(e.price))}</td><td class="num">${delta ? `<span class="badge ${delta > 0 ? "up" : "down"}">${delta > 0 ? "▲" : "▼"} ${this._num(Math.abs(delta), 3)}</span>` : ""}</td></tr>`;
+        return `<tr><td>${esc(fmtDate(e.at))}${e.info ? `<div class="hint info">${esc(e.info)}</div>` : ""}</td><td class="num">${esc(fmt(e.price))}</td><td class="num">${delta ? `<span class="badge ${delta > 0 ? "up" : "down"}">${delta > 0 ? "▲" : "▼"} ${this._num(Math.abs(delta), 3)}</span>` : ""}</td></tr>`;
       }).join("");
       return `<details class="hist" data-hist="${esc(title)}"><summary>${esc(title)} (${entries.length})</summary><div class="scroll"><table><tbody>${rows}</tbody></table></div></details>`;
     }

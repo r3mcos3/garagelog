@@ -355,6 +355,14 @@ async def test_fuel_prices_log_changes_gap_and_top_up(hass, mock_entry, freezer)
     snapshot = manager.snapshot(full=True)
     assert [e["price"] for e in snapshot["price_history"]["sensor.fuel_a"]] == [1.85, 1.9]  # newest first
     assert snapshot["price_history"]["gap"][0]["price"] == 0.05
+    # the info text of a station is kept per logged price, and a new text at the same price is logged too
+    assert manager.store.price_log("sensor.fuel_b")[0]["info"] == "Shell Baroniebaan, Baroniebaan 2, 5037LZ"
+    assert "info" not in manager.store.price_log("sensor.fuel_a")[0]
+    hass.states.async_set("sensor.fuel_b_info", "Esso Reeshof, Reeshof 1, 5000AA")
+    await hass.async_block_till_done()
+    assert [e["info"] for e in manager.store.price_log("sensor.fuel_b")] == [
+        "Shell Baroniebaan, Baroniebaan 2, 5037LZ", "Esso Reeshof, Reeshof 1, 5000AA"]
+    assert manager.view["fuel_prices"]["stations"][1]["change"]["direction"] is None
     # an unavailable station is skipped; a removed station loses its history
     hass.states.async_set("sensor.fuel_b", "unavailable")
     await hass.async_block_till_done()

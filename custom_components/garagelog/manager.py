@@ -266,7 +266,7 @@ class VehicleManager:
         for st in stations:
             price = self.station_price(st["entity_id"])
             if price is not None:
-                self.store.log_price(st["entity_id"], price, now)
+                self.store.log_price(st["entity_id"], price, now, self._station_info(st.get("info_entity_id")))
                 prices.append(price)
         if len(prices) >= 2:
             self.store.log_price(FUEL_GAP, round(max(prices) - min(prices), 3), now)

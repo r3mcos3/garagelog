@@ -156,6 +156,7 @@
     R.fp_topup_typed = $("#topup").textContent.includes("€38.67") && $("#tank-liters").value === "40" && !$("#topup").textContent.includes("settings");
     R.fp_tips = $$("#tips p").length === 2 && $("#tips").textContent.includes("3.2% below") && $("#tips").textContent.includes("Tuesdays");
     R.fp_chart = $$("#pricechart path.line").length === 2 && $$("#pricechart circle").length === 5;
+    R.fp_history_info = $('details.hist[data-hist="Tilburg"] .info').textContent.includes("Shell Baroniebaan");
     R.fp_history = $$("details.hist").length === 4 && $('details.hist[data-hist="Tilburg"]').textContent.includes("Tilburg (3)") && $('details.hist[data-hist="Tilburg"] .badge.down') !== null;
 
     // settings
