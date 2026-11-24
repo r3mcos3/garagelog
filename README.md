@@ -3,7 +3,7 @@
 **Garagelog: car management for Home Assistant** — fuel log, consumption and costs, maintenance, APK, washing, tyre pressure
 and oil, in one standalone integration. No cloud account, no app, no server: everything is stored in Home Assistant.
 
-> Status: **0.4.1 (sidebar panel, fuel prices), only tried in automated tests and in a first install on the author's Home Assistant.** See `docs/testen.md`.
+> Status: **0.5.0 (sidebar panel, fuel prices), only tried in automated tests and in a first install on the author's Home Assistant.** See `docs/testen.md`.
 
 ## What it does
 
@@ -24,7 +24,8 @@ and oil, in one standalone integration. No cloud account, no app, no server: eve
   "Fuel prices" shows every station with its last price change, the cheapest station and the gap, what filling up costs per station (with the car's
   tank size and fuel level), a price history chart, hints (price vs. its own average, cheapest weekday) and the changes per station. Only price
   changes are stored (one year). Per station you can add an optional text sensor (0.4.0) whose state is shown on the card, for example the
-  station's name and address; it is also kept with every logged price, so the history shows which station it was. Sensor `cheapest_fuel_price` for automations.
+  station's name and address; it is also kept with every logged price, so the history shows which station it was. A **notification per price change** (per station, switchable, optional minimum change) works like the Keepr app. Sensor `cheapest_fuel_price` for automations.
+- **Tyre pressure log** (0.5.0): the four pressures are logged automatically on Wednesday and Sunday from 08:00 (tab Tyres, also editable by hand); a message follows when that is not possible, and when the pressure is back to normal after a warning.
 - A **sidebar panel** "Garagelog" (icon `mdi:car`): a full page per vehicle with an overview (warnings, APK, next service, last refuel,
   consumption, costs, live source values, tyre pressure per wheel shown on a car outline, oil life), log tabs (fuel, maintenance, washing, tyres, oil) with add / edit /
   delete, a cost tab with a stacked monthly chart and a period filter, and a settings tab. Several vehicles are chosen in the header; on a phone

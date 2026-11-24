@@ -196,6 +196,7 @@ def _set_tyres(hass, values, unit="kPa"):
 
 async def test_tyre_alert_once_per_dip(hass, mock_entry, with_sources, notified):
     events = async_capture_events(hass, "garagelog_tyre_pressure")
+    ok_events = async_capture_events(hass, "garagelog_tyre_pressure_ok")
     _set_tyres(hass, (250, 250, 250, 250))
     mock_entry.add_to_hass(hass)
     hass.config_entries.async_update_entry(
@@ -218,8 +219,9 @@ async def test_tyre_alert_once_per_dip(hass, mock_entry, with_sources, notified)
     assert len(events) == 1
     await put((250, 250, 250, 250))  # recovered: alert re-armed, no message
     assert len(events) == 1 and val(hass, mock_entry, "tyre_pressure_low") == "off"
+    assert len(ok_events) == 1  # "back to normal" message
     await put((250, 250, 250, 220))  # new dip: second message
-    assert len(events) == 2 and len(notified) == 2
+    assert len(events) == 2 and len(notified) == 3
     assert events[1].data["deviation"] == 0.3
 
 
@@ -381,3 +383,71 @@ async def test_tank_size_falls_back_to_average_then_default(hass, mock_entry, fr
     await call(hass, mock_entry, "log_refuel", liters=44, odometer=1600, date="2026-10-20", full=True)
     tank = mock_entry.runtime_data.view["fuel_prices"]["tank"]
     assert tank["source"] == "average" and tank["liters"] == 42.0
+
+
+async def test_fuel_price_change_notifications(hass, mock_entry, freezer, notified):
+    events = async_capture_events(hass, "garagelog_fuel_price_changed")
+    hass.states.async_set("sensor.fuel_a", "1.900")
+    hass.states.async_set("sensor.fuel_b", "1.800")
+    hass.states.async_set("sensor.fuel_b_info", "Shell Baroniebaan, Baroniebaan 2")
+    stations = [
+        {"name": "A", "entity_id": "sensor.fuel_a"},
+        {"name": "B", "entity_id": "sensor.fuel_b", "info_entity_id": "sensor.fuel_b_info"},
+    ]
+    await setup(hass, mock_entry, freezer, "2026-11-01 12:00:00+01:00", fuel_stations=stations, fuel_price_notify_min=0.02)
+    assert not events and not notified  # the first reading is no change
+    hass.states.async_set("sensor.fuel_a", "1.910")  # +0.010: below the minimum
+    await hass.async_block_till_done()
+    assert not events
+    hass.states.async_set("sensor.fuel_b", "1.850")  # +0.050
+    await hass.async_block_till_done()
+    assert len(events) == 1 and events[0].data["station"] == "B" and events[0].data["delta"] == 0.05
+    assert events[0].data["cheapest"] == "B" and events[0].data["gap"] == 0.06
+    assert len(notified) == 1
+    assert "Fuel price up" in notified[0].data["title"] and "Shell Baroniebaan" in notified[0].data["message"]
+    # switched off: nothing is sent, but the price is still logged
+    hass.config_entries.async_update_entry(mock_entry, options={**mock_entry.options, "fuel_price_notify": False})
+    mock_entry.runtime_data.async_refresh()
+    hass.states.async_set("sensor.fuel_b", "1.700")
+    await hass.async_block_till_done()
+    assert len(events) == 1 and len(notified) == 1
+    assert mock_entry.runtime_data.store.price_log("sensor.fuel_b")[-1]["price"] == 1.7
+
+
+async def test_tyre_pressure_logged_automatically_twice_a_week(hass, mock_entry, with_sources, freezer, notified):
+    await hass.config.async_set_time_zone("Europe/Amsterdam")
+    hass.states.async_set("sensor.car_odometer", "64552")
+    _set_tyres(hass, (238, 241, 236, 236))
+    freezer.move_to("2026-11-24 07:00:00+01:00")  # Tuesday: no log day
+    mock_entry.add_to_hass(hass)
+    hass.config_entries.async_update_entry(mock_entry, data=with_sources, options={CONF_NOTIFY_TARGETS: ["service:phone"]})
+    assert await hass.config_entries.async_setup(mock_entry.entry_id)
+    await hass.async_block_till_done()
+    manager = mock_entry.runtime_data
+    assert manager.store.records("tyre_logs") == []
+    freezer.move_to("2026-11-25 07:00:00+01:00")  # Wednesday, before 08:00
+    await manager.async_check()
+    assert manager.store.records("tyre_logs") == []
+    freezer.move_to("2026-11-25 08:30:00+01:00")
+    await manager.async_check()
+    await manager.async_check()  # once a day
+    [log] = manager.store.records("tyre_logs")
+    assert log["date"] == "2026-11-25" and log["front_left"] == 2.38 and log["rear_right"] == 2.36 and log["odometer"] == 64552
+    assert manager.snapshot(full=True)["records"]["tyre_logs"][0]["front_right"] == 2.41
+
+
+async def test_tyre_log_failure_reported_once_in_the_evening(hass, mock_entry, with_sources, freezer, notified):
+    events = async_capture_events(hass, "garagelog_tyre_log_failed")
+    await hass.config.async_set_time_zone("Europe/Amsterdam")
+    freezer.move_to("2026-11-25 09:00:00+01:00")  # Wednesday; the tyre sensors do not exist
+    mock_entry.add_to_hass(hass)
+    hass.config_entries.async_update_entry(mock_entry, data=with_sources, options={CONF_NOTIFY_TARGETS: ["service:phone"]})
+    assert await hass.config_entries.async_setup(mock_entry.entry_id)
+    await hass.async_block_till_done()
+    manager = mock_entry.runtime_data
+    await manager.async_check()
+    assert not events and manager.store.records("tyre_logs") == []
+    freezer.move_to("2026-11-25 20:30:00+01:00")
+    await manager.async_check()
+    await manager.async_check()
+    assert len(events) == 1 and len(notified) == 1

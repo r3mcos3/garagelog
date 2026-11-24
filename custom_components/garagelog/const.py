@@ -34,6 +34,8 @@ CONF_SERVICE_INTERVAL_KM = "service_interval_km"
 CONF_SERVICE_INTERVAL_DAYS = "service_interval_days"
 CONF_APK_DATE = "apk_date"
 CONF_PANEL_ADMIN = "panel_admin_only"
+CONF_FUEL_NOTIFY = "fuel_price_notify"
+CONF_FUEL_NOTIFY_MIN = "fuel_price_notify_min"
 
 DEFAULT_TYRE_TARGET = 2.5
 DEFAULT_TYRE_THRESHOLD = 0.2
@@ -62,13 +64,18 @@ REFUELS = "refuels"
 SERVICES = "services"
 WASHES = "washes"
 OIL_CHECKS = "oil_checks"
+TYRE_LOGS = "tyre_logs"
 OIL_SAMPLES = "oil_samples"
 FUEL_PRICES = "fuel_prices"
 FUEL_GAP = "gap"
 MAX_FUEL_STATIONS = 8
 PRICE_RETENTION_DAYS = 365
 DEFAULT_TANK_LITERS = 50.0
-COLLECTIONS = (REFUELS, SERVICES, WASHES, OIL_CHECKS)
+COLLECTIONS = (REFUELS, SERVICES, WASHES, OIL_CHECKS, TYRE_LOGS)
+# automatic tyre pressure log: Wednesday and Sunday (datetime.weekday), from 08:00; a failure is reported from 20:00
+TYRE_LOG_WEEKDAYS = (2, 6)
+TYRE_LOG_HOUR = 8
+TYRE_LOG_FAIL_HOUR = 20
 
 # wash status
 WASH_OK = "ok"
@@ -82,6 +89,9 @@ EVENT_WASH_DUE = f"{EVENT_PREFIX}wash_due"
 EVENT_TYRE_PRESSURE = f"{EVENT_PREFIX}tyre_pressure"
 EVENT_OIL_CHECK_DUE = f"{EVENT_PREFIX}oil_check_due"
 EVENT_OIL_CHANGE_DUE = f"{EVENT_PREFIX}oil_change_due"
+EVENT_FUEL_PRICE = f"{EVENT_PREFIX}fuel_price_changed"
+EVENT_TYRE_PRESSURE_OK = f"{EVENT_PREFIX}tyre_pressure_ok"
+EVENT_TYRE_LOG_FAILED = f"{EVENT_PREFIX}tyre_log_failed"
 
 # websocket / frontend
 PANEL_PATH = DOMAIN

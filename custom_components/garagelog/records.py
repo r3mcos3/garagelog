@@ -9,7 +9,7 @@ import voluptuous as vol
 from homeassistant.helpers import config_validation as cv
 
 from . import calc
-from .const import OIL_CHECKS, REFUELS, SERVICE_TYPES, SERVICES, WASHES
+from .const import OIL_CHECKS, REFUELS, SERVICE_TYPES, SERVICES, TYRE_LOGS, WASHES
 
 _POSITIVE = vol.All(vol.Coerce(float), vol.Range(min=0))
 _COMMON = {
@@ -36,6 +36,14 @@ FIELDS: dict[str, dict[Any, Any]] = {
         **_COMMON,
     },
     WASHES: {vol.Optional("cost"): vol.Any(None, _POSITIVE), **_COMMON},
+    TYRE_LOGS: {
+        vol.Optional("front_left"): vol.Any(None, _POSITIVE),
+        vol.Optional("front_right"): vol.Any(None, _POSITIVE),
+        vol.Optional("rear_left"): vol.Any(None, _POSITIVE),
+        vol.Optional("rear_right"): vol.Any(None, _POSITIVE),
+        **_ODO,
+        **_COMMON,
+    },
     OIL_CHECKS: {
         vol.Optional("level"): vol.Any(None, cv.string),
         vol.Optional("added_litres"): vol.Any(None, _POSITIVE),

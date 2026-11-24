@@ -55,4 +55,36 @@ def message(language: str, kind: str, d: dict[str, Any]) -> tuple[str, str]:
             if nl
             else (f"Oil change {name}", f"Estimated oil change is approaching{extra}.")
         )
+    if kind == "fuel_price":
+        arrow = "▲" if d["delta"] > 0 else "▼"
+        verb = ("gestegen" if d["delta"] > 0 else "gedaald") if nl else ("up" if d["delta"] > 0 else "down")
+        who = d["station"] + (f" ({d['info']})" if d.get("info") else "")
+        delta = f"{d['delta']:+.3f}"
+        if nl:
+            text = f"De prijs bij {who} is {verb} naar €{d['price']:.3f} ({delta})."
+            if d.get("cheapest") and d["gap"]:
+                text += f" {d['cheapest']} is nu het goedkoopst, €{d['gap']:.3f} minder dan {d['priciest']}"
+            elif d.get("cheapest"):
+                text += " Alle prijzen zijn nu gelijk"
+            text += f" ({d['summary']})." if d.get("summary") else "."
+            return f"⛽{arrow} Benzineprijs {verb} — {d['station']}", text
+        text = f"The price at {who} went {verb} to €{d['price']:.3f} ({delta})."
+        if d.get("cheapest") and d["gap"]:
+            text += f" {d['cheapest']} is now the cheapest, €{d['gap']:.3f} below {d['priciest']}"
+        elif d.get("cheapest"):
+            text += " All prices are now equal"
+        text += f" ({d['summary']})." if d.get("summary") else "."
+        return f"⛽{arrow} Fuel price {verb} — {d['station']}", text
+    if kind == "tyre_ok":
+        return (
+            (f"Bandenspanning {name}", "✅ De bandenspanning is weer normaal.")
+            if nl
+            else (f"Tyre pressure {name}", "✅ The tyre pressure is back to normal.")
+        )
+    if kind == "tyre_log_failed":
+        return (
+            (f"Bandenspanning {name}", "De automatische bandenspanninglog is overgeslagen: de live bandenspanning was niet beschikbaar. Log hem handmatig.")
+            if nl
+            else (f"Tyre pressure {name}", "The automatic tyre pressure log was skipped: the live pressure was not available. Please log it by hand.")
+        )
     return name, kind

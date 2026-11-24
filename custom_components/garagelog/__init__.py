@@ -16,6 +16,7 @@ from .const import (
     OIL_CHECKS,
     REFUELS,
     SERVICES,
+    TYRE_LOGS,
     WASHES,
 )
 from .frontend import async_setup_frontend, async_sync_panel
@@ -45,7 +46,7 @@ SCHEMAS: dict[str, vol.Schema] = {
     "remove_record": vol.Schema(
         {
             **_BASE,
-            vol.Required("collection"): vol.In([REFUELS, SERVICES, WASHES, OIL_CHECKS]),
+            vol.Required("collection"): vol.In([REFUELS, SERVICES, WASHES, OIL_CHECKS, TYRE_LOGS]),
             vol.Required("id"): cv.string,
         }
     ),

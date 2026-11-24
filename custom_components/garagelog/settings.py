@@ -8,6 +8,8 @@ from .const import (
     CONF_APK_DATE,
     CONF_APK_DAYS,
     CONF_FUEL_LEVEL_ENTITY,
+    CONF_FUEL_NOTIFY,
+    CONF_FUEL_NOTIFY_MIN,
     CONF_FUEL_STATIONS,
     CONF_NOTIFY_TARGETS,
     CONF_ODOMETER_ENTITY,
@@ -37,6 +39,7 @@ FLOATS = {
     CONF_TYRE_TARGET: (1.0, 5.0, DEFAULT_TYRE_TARGET),
     CONF_TYRE_THRESHOLD: (0.05, 1.0, DEFAULT_TYRE_THRESHOLD),
     CONF_TANK_CAPACITY: (10.0, 200.0, None),
+    CONF_FUEL_NOTIFY_MIN: (0.0, 1.0, 0.0),
 }
 INTS = {
     CONF_WASH_SOON_DAYS: (1, 365, DEFAULT_WASH_SOON_DAYS),
@@ -49,6 +52,7 @@ INTS = {
 ENTITIES = (CONF_ODOMETER_ENTITY, CONF_FUEL_LEVEL_ENTITY, CONF_OIL_LIFE_ENTITY)
 KEYS = (
     *FLOATS, *INTS, *ENTITIES, CONF_TYRE_ENTITIES, CONF_FUEL_STATIONS, CONF_NOTIFY_TARGETS, CONF_APK_DATE, CONF_PANEL_ADMIN,
+    CONF_FUEL_NOTIFY,
 )
 
 
@@ -99,7 +103,7 @@ def clean(raw: dict[str, Any]) -> dict[str, Any]:
             out[key] = value
         elif key == CONF_FUEL_STATIONS:
             out[key] = _stations(value)
-        elif key == CONF_PANEL_ADMIN:
+        elif key in (CONF_PANEL_ADMIN, CONF_FUEL_NOTIFY):
             out[key] = bool(value)
         else:
             out[key] = str(value)
@@ -125,4 +129,5 @@ def effective(entry_data: dict[str, Any], options: dict[str, Any]) -> dict[str, 
     result[CONF_NOTIFY_TARGETS] = list(options.get(CONF_NOTIFY_TARGETS) or [])
     result[CONF_APK_DATE] = options.get(CONF_APK_DATE) or None
     result[CONF_PANEL_ADMIN] = bool(options.get(CONF_PANEL_ADMIN, False))
+    result[CONF_FUEL_NOTIFY] = bool(options.get(CONF_FUEL_NOTIFY, True))
     return result

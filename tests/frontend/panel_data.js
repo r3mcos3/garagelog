@@ -32,7 +32,7 @@ window.mockSnapshot = (entryId = "e1", o = {}) => ({
     tyre_target_bar: 2.5, tyre_threshold_bar: 0.2, wash_soon_days: 30, wash_due_days: 60, apk_days: 30, oil_check_day: 25, service_interval_km: 15000,
     service_interval_days: 365, odometer_entity: "sensor.car_odometer", fuel_level_entity: "sensor.car_fuel", oil_life_entity: "sensor.car_oil",
     tyre_entities: ["sensor.t0", "sensor.t1", "sensor.t2"],
-    tank_capacity_l: 52,
+    tank_capacity_l: 52, fuel_price_notify: true, fuel_price_notify_min: 0.02,
     fuel_stations: [{ name: "Tilburg", entity_id: "sensor.fuel_tb", info_entity_id: "sensor.tb_info" }, { name: "Poppel", entity_id: "sensor.fuel_pp" }, { name: "Ravels", entity_id: "sensor.fuel_rv" }], notify_targets: ["entity:notify.telegram"], apk_date: null, panel_admin_only: false, ...o.settings,
   },
   monthly: [
@@ -56,6 +56,7 @@ window.mockSnapshot = (entryId = "e1", o = {}) => ({
       { id: "s1", date: "2026-05-01", type: "oil_change", odometer: 48000, cost: 90 },
     ],
     washes: [{ id: "w1", date: "2026-10-10", cost: 20 }],
+    tyre_logs: [{ id: "t1", date: "2026-11-25", odometer: 64552, front_left: 2.38, front_right: 2.41, rear_left: 2.36, rear_right: 2.36, note: "Automatically logged" }],
     oil_checks: [{ id: "o1", date: "2026-10-26", odometer: 51500, level: "ok", added_litres: 0.2 }],
   },
 });

@@ -126,6 +126,12 @@
     R.wash_row = $("table[data-table=washes] tbody tr").textContent.includes("10-10-2026");
     await goTab("tyres");
     R.tyres_tab = $$("#wheels .tile").length === 4 && $$("table[data-table=services] tbody tr").length === 1 && $("tr[data-id=s3]").textContent.includes("Tyres");
+    R.tyre_log_table = $$("table[data-table=tyre_logs] tbody tr").length === 1 && $("table[data-table=tyre_logs]").textContent.includes("2.38") && $("table[data-table=tyre_logs]").textContent.replace(/[^0-9]/g, "").includes("64552");
+    await click('[data-add="tyre_logs"]');
+    R.tyre_log_form = ["front_left", "front_right", "rear_left", "rear_right"].every((k) => !!f().elements[k]);
+    f().elements.front_left.value = "2.4"; f().elements.rear_right.value = "2.3"; f().requestSubmit(); await tick(10);
+    const tlAdd = sent.filter((m) => m.type === "garagelog/record_add" && m.collection === "tyre_logs").pop();
+    R.tyre_log_sent = !!tlAdd && tlAdd.data.front_left === 2.4 && tlAdd.data.rear_right === 2.3 && !("front_right" in tlAdd.data);
     await click('[data-add="services"]');
     R.tyres_preset = f().elements.type.value === "tyres" && f().elements.type.disabled;
     f().requestSubmit(); await tick(10);
@@ -173,6 +179,7 @@
     sf().requestSubmit(); await tick(5);
     R.settings_invalid_date = $("#settings-err").textContent.includes("dd-mm-yyyy");
     sf().elements.apk_date.value = "20-01-2027";
+    R.fuel_notify_form = sf().elements.fuel_price_notify.checked && sf().elements.fuel_price_notify_min.value === "0.02";
     R.fp_station_form = sf().elements.fs_name_0.value === "Tilburg" && sf().elements.fs_entity_2.value === "sensor.fuel_rv" && sf().elements.fs_info_0.value === "sensor.tb_info" && sf().elements.fs_name_3.value === "" && sf().elements.tank_capacity_l.value === "52";
     sf().elements.fs_name_5.value = "Orphan"; sf().requestSubmit(); await tick(5);
     R.fp_station_err = $("#settings-err").textContent.includes("name and a sensor");
@@ -185,7 +192,7 @@
     R.settings_sent = !!ss && ss.settings.tyre_target_bar === 2.4 && ss.settings.apk_date === "2027-01-20" && ss.settings.odometer_entity === null &&
       JSON.stringify(ss.settings.tyre_entities) === JSON.stringify(["sensor.t0", "sensor.t1", "sensor.t2", "sensor.t3"]) &&
       JSON.stringify(ss.settings.notify_targets) === JSON.stringify(["entity:notify.telegram", "service:mobile_app_phone"]) && ss.settings.panel_admin_only === false && ss.entry_id === "e1" &&
-      ss.settings.fuel_stations.length === 3 && ss.settings.fuel_stations[1].entity_id === "sensor.fuel_pp" && ss.settings.fuel_stations[0].info_entity_id === "sensor.tb_info" && !("info_entity_id" in ss.settings.fuel_stations[1]) && ss.settings.tank_capacity_l === 52;
+      ss.settings.fuel_stations.length === 3 && ss.settings.fuel_stations[1].entity_id === "sensor.fuel_pp" && ss.settings.fuel_stations[0].info_entity_id === "sensor.tb_info" && !("info_entity_id" in ss.settings.fuel_stations[1]) && ss.settings.tank_capacity_l === 52 && ss.settings.fuel_price_notify === true && ss.settings.fuel_price_notify_min === 0.02;
     // unsaved edits survive a pushed snapshot
     sf().elements.wash_soon_days.value = "21";
     sf().elements.wash_soon_days.dispatchEvent(new Event("input", { bubbles: true }));

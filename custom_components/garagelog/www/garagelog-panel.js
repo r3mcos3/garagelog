@@ -23,7 +23,9 @@
       target: "target", oil_life: "Oil life", oil_est: "Estimated oil change", estimate: "estimate", fuel_level: "Fuel level",
       add: "Add", edit: "Edit", delete: "Delete", sure: "Delete?", yes: "Yes", no: "No", save: "Save", cancel: "Cancel", saved: "Saved",
       empty: "Nothing logged yet.",
-      add_refuels: "Add refuel", add_services: "Add maintenance", add_washes: "Add wash", add_tyres: "Add tyre entry", add_oil: "Add oil check", add_oilchange: "Add oil change",
+      add_refuels: "Add refuel", add_services: "Add maintenance", add_washes: "Add wash", add_tyres: "Add tyre entry", add_oil: "Add oil check", add_oilchange: "Add oil change", add_tyrelog: "Add tyre pressures", tyres_pressure_log: "Tyre pressure log (automatic: Wednesday and Sunday)",
+      f_front_left: "Front left (bar)", f_front_right: "Front right (bar)", f_rear_left: "Rear left (bar)", f_rear_right: "Rear right (bar)",
+      s_fuel_notify: "Notify when a fuel price changes", s_fuel_notify_min: "Only from a change of (€/L)",
       edit_record: "Edit entry",
       f_date: "Date", f_odometer: "Odometer (km)", f_liters: "Litres", f_total_cost: "Total cost", f_price_per_litre: "Price per litre", f_full: "Full tank",
       f_note: "Note", f_type: "Type", f_cost: "Cost", f_next_due_date: "Next due date", f_next_due_odometer: "Next due at (km)", f_level: "Level",
@@ -69,7 +71,9 @@
       target: "doel", oil_life: "Olieleven", oil_est: "Geschatte olieverversing", estimate: "schatting", fuel_level: "Brandstofniveau",
       add: "Toevoegen", edit: "Bewerken", delete: "Verwijderen", sure: "Verwijderen?", yes: "Ja", no: "Nee", save: "Opslaan", cancel: "Annuleren", saved: "Opgeslagen",
       empty: "Nog niets vastgelegd.",
-      add_refuels: "Tankbeurt toevoegen", add_services: "Onderhoud toevoegen", add_washes: "Wasbeurt toevoegen", add_tyres: "Bandenregistratie toevoegen", add_oil: "Olie-peiling toevoegen", add_oilchange: "Olieverversing toevoegen",
+      add_refuels: "Tankbeurt toevoegen", add_services: "Onderhoud toevoegen", add_washes: "Wasbeurt toevoegen", add_tyres: "Bandenregistratie toevoegen", add_oil: "Olie-peiling toevoegen", add_oilchange: "Olieverversing toevoegen", add_tyrelog: "Bandenspanning toevoegen", tyres_pressure_log: "Bandenspanninglog (automatisch: woensdag en zondag)",
+      f_front_left: "Linksvoor (bar)", f_front_right: "Rechtsvoor (bar)", f_rear_left: "Linksachter (bar)", f_rear_right: "Rechtsachter (bar)",
+      s_fuel_notify: "Melding bij een prijswijziging van brandstof", s_fuel_notify_min: "Pas vanaf een wijziging van (€/L)",
       edit_record: "Registratie bewerken",
       f_date: "Datum", f_odometer: "Kilometerstand (km)", f_liters: "Liters", f_total_cost: "Totaalbedrag", f_price_per_litre: "Prijs per liter", f_full: "Vol getankt",
       f_note: "Notitie", f_type: "Soort", f_cost: "Kosten", f_next_due_date: "Volgende beurt (datum)", f_next_due_odometer: "Volgende beurt bij (km)", f_level: "Peil",
@@ -123,6 +127,7 @@
     services: [["date", "date"], ["type", "select"], ["odometer", "num", "1"], ["cost", "num", "0.01"], ["next_due_date", "date"], ["next_due_odometer", "num", "1"], ["note", "text"]],
     washes: [["date", "date"], ["cost", "num", "0.01"], ["note", "text"]],
     oil_checks: [["date", "date"], ["odometer", "num", "1"], ["level", "text"], ["added_litres", "num", "0.1"], ["note", "text"]],
+    tyre_logs: [["date", "date"], ["odometer", "num", "1"], ["front_left", "num", "0.01"], ["front_right", "num", "0.01"], ["rear_left", "num", "0.01"], ["rear_right", "num", "0.01"], ["note", "text"]],
   };
 
   class GaragelogPanel extends HTMLElement {
@@ -429,6 +434,7 @@
       if (collection === "refuels") return [date, odo, n("liters", 2), money("total_cost"), { label: t.f_price_per_litre, num: true, fn: (r) => (r.price_per_litre == null ? t.unknown : this._money(r.price_per_litre)) }, { label: t.f_l100, num: true, fn: (r) => this._num(r.l_per_100km, 1) }, { label: t.f_full, fn: (r) => (r.full === false ? "" : "✓") }, note];
       if (collection === "services") return [date, { label: t.f_type, fn: (r) => esc(t["type_" + r.type] || r.type) }, odo, money("cost"), { label: t.f_next_due_date, fn: (r) => esc(fmtDate(r.next_due_date)) }, note];
       if (collection === "washes") return [date, money("cost"), note];
+      if (collection === "tyre_logs") return [date, odo, n("front_left", 2), n("front_right", 2), n("rear_left", 2), n("rear_right", 2), note];
       return [date, odo, { label: t.f_level, fn: (r) => esc(r.level || "") }, n("added_litres", 1), note];
     }
 
@@ -448,6 +454,7 @@
     _tab_tyres() {
       const t = this.t, rows = this._snap.records.services.filter((r) => r.type === "tyres");
       return `<div class="card"><h2>${esc(t.tyres_live)}</h2>${this._wheels()}</div>
+        <div class="card"><div class="bar"><h2 style="margin:0">${esc(t.tyres_pressure_log)}</h2>${this._addButton(t.add_tyrelog, "tyre_logs")}</div>${this._table("tyre_logs", this._cols("tyre_logs"), this._snap.records.tyre_logs || [])}</div>
         <div class="card"><div class="bar"><h2 style="margin:0">${esc(t.tyres_log)}</h2>${this._addButton(t.add_tyres, "services", "tyres")}</div>${this._table("services", this._cols("services"), rows, "tyres")}</div>`;
     }
     _tab_oil() {
@@ -627,7 +634,8 @@
           ${ent("odometer_entity", t.s_odometer, st.odometer_entity)}${ent("fuel_level_entity", t.s_fuel, st.fuel_level_entity)}${ent("oil_life_entity", t.s_oil_life, st.oil_life_entity)}${tyres}
         </div>${list}</div>
         <div class="card"><h2>${esc(t.s_stations)}</h2><div class="hint">${esc(t.s_stations_hint)}</div>${stationRows}
-          <div class="settings-grid">${num("tank_capacity_l", t.s_tank, st.tank_capacity_l, "0.1")}</div></div>
+          <div class="settings-grid">${num("tank_capacity_l", t.s_tank, st.tank_capacity_l, "0.1")}${num("fuel_price_notify_min", t.s_fuel_notify_min, st.fuel_price_notify_min, "0.001")}</div>
+          <label class="field check"><input type="checkbox" name="fuel_price_notify" ${st.fuel_price_notify ? "checked" : ""} ${dis}> ${esc(t.s_fuel_notify)}</label></div>
         <div class="card"><h2>${esc(t.s_panel)}</h2><label class="field check"><input type="checkbox" name="panel_admin_only" ${st.panel_admin_only ? "checked" : ""} ${dis}> ${esc(t.s_admin)}</label>
           <div class="hint">${esc(t.s_more)}</div></div>
         <div class="err" id="settings-err"></div>
@@ -656,7 +664,7 @@
         fuelStations.push(info ? { name, entity_id: entity, info_entity_id: info } : { name, entity_id: entity });
       }
       const settings = {
-        fuel_stations: fuelStations, tank_capacity_l: num("tank_capacity_l"),
+        fuel_stations: fuelStations, tank_capacity_l: num("tank_capacity_l"), fuel_price_notify_min: num("fuel_price_notify_min"), fuel_price_notify: f.get("fuel_price_notify") === "on",
         tyre_target_bar: num("tyre_target_bar"), tyre_threshold_bar: num("tyre_threshold_bar"), wash_soon_days: num("wash_soon_days"), wash_due_days: num("wash_due_days"),
         apk_days: num("apk_days"), oil_check_day: num("oil_check_day"), service_interval_km: num("service_interval_km"), service_interval_days: num("service_interval_days"),
         apk_date: apk, odometer_entity: str("odometer_entity"), fuel_level_entity: str("fuel_level_entity"), oil_life_entity: str("oil_life_entity"),
@@ -694,7 +702,7 @@
         }
         return `<label class="field">${esc(label)}<input type="text" name="${key}" value="${esc(val ?? "")}"></label>`;
       }).join("");
-      const addKey = { refuels: "add_refuels", services: preset === "tyres" ? "add_tyres" : preset === "oil_change" ? "add_oilchange" : "add_services", washes: "add_washes", oil_checks: "add_oil" }[collection];
+      const addKey = { refuels: "add_refuels", services: preset === "tyres" ? "add_tyres" : preset === "oil_change" ? "add_oilchange" : "add_services", washes: "add_washes", oil_checks: "add_oil", tyre_logs: "add_tyrelog" }[collection];
       host.innerHTML = `<div class="modal-bg" id="modal-bg"><form class="modal" id="record-form"><h2>${esc(editing ? t.edit_record : t[addKey])}</h2>${fields}<div class="err" id="modal-err"></div>
         <div class="actions"><button class="btn" type="button" id="modal-cancel">${esc(t.cancel)}</button><button class="btn primary" type="submit">${esc(t.save)}</button></div></form></div>`;
       const first = host.querySelector("input:not([data-mask])") || host.querySelector("input");

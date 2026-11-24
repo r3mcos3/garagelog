@@ -20,6 +20,8 @@ from .const import (
     CONF_APK_DATE,
     CONF_APK_DAYS,
     CONF_FUEL_LEVEL_ENTITY,
+    CONF_FUEL_NOTIFY,
+    CONF_FUEL_NOTIFY_MIN,
     CONF_FUEL_STATIONS,
     CONF_NOTIFY_TARGETS,
     CONF_ODOMETER_ENTITY,
@@ -45,10 +47,13 @@ from .const import (
     DEFAULT_WASH_SOON_DAYS,
     DOMAIN,
     EVENT_APK_DUE,
+    EVENT_FUEL_PRICE,
     EVENT_OIL_CHANGE_DUE,
     EVENT_OIL_CHECK_DUE,
     EVENT_SERVICE_DUE,
+    EVENT_TYRE_LOG_FAILED,
     EVENT_TYRE_PRESSURE,
+    EVENT_TYRE_PRESSURE_OK,
     EVENT_WASH_DUE,
     FUEL_GAP,
     FUEL_PRICES,
@@ -63,6 +68,10 @@ from .const import (
     SERVICE_SOON_KM,
     SERVICES,
     TYRE_HYSTERESIS,
+    TYRE_LOG_FAIL_HOUR,
+    TYRE_LOG_HOUR,
+    TYRE_LOG_WEEKDAYS,
+    TYRE_LOGS,
     WASH_DUE,
     WASH_SOON,
     WASHES,
@@ -262,14 +271,47 @@ class VehicleManager:
         now = dt_util.utcnow()
         stations = self.stations()
         self.store.forget_prices({st["entity_id"] for st in stations} | {FUEL_GAP})
-        prices = []
+        prices, changes = [], []
         for st in stations:
             price = self.station_price(st["entity_id"])
             if price is not None:
-                self.store.log_price(st["entity_id"], price, now, self._station_info(st.get("info_entity_id")))
+                log = self.store.price_log(st["entity_id"])
+                previous = log[-1]["price"] if log else None
+                info = self._station_info(st.get("info_entity_id"))
+                if self.store.log_price(st["entity_id"], price, now, info) and previous is not None and price != previous:
+                    changes.append({"station": st["name"], "price": price, "delta": round(price - previous, 3), "info": info})
                 prices.append(price)
+        if changes:
+            self._notify_price_changes(changes, stations)
         if len(prices) >= 2:
             self.store.log_price(FUEL_GAP, round(max(prices) - min(prices), 3), now)
+
+    def _notify_price_changes(self, changes: list[dict[str, Any]], stations: list[dict[str, str]]) -> None:
+        """One notification per station whose price changed (like the Keepr app), when switched on."""
+        if not self.opt(CONF_FUEL_NOTIFY, True):
+            return
+        minimum = float(self.opt(CONF_FUEL_NOTIFY_MIN, 0.0))
+        now_prices = [(st["name"], self.station_price(st["entity_id"])) for st in stations]
+        now_prices = [(n, p) for n, p in now_prices if p is not None]
+        cheapest = min(now_prices, key=lambda x: x[1])
+        priciest = max(now_prices, key=lambda x: x[1])
+        summary = " · ".join(f"{n} €{p:.3f}" for n, p in now_prices)
+        for change in changes:
+            if abs(change["delta"]) < minimum:
+                continue
+            self.hass.async_create_task(
+                self._async_notify(
+                    EVENT_FUEL_PRICE,
+                    "fuel_price",
+                    {
+                        **change,
+                        "cheapest": cheapest[0] if len(now_prices) > 1 else None,
+                        "priciest": priciest[0],
+                        "gap": round(priciest[1] - cheapest[1], 3),
+                        "summary": summary,
+                    },
+                )
+            )
 
     def tank_liters(self, refuels: list[dict[str, Any]]) -> tuple[float, str]:
         capacity = self.entry.options.get(CONF_TANK_CAPACITY)
@@ -418,6 +460,7 @@ class VehicleManager:
                 "services": len(services),
                 "washes": len(washes),
                 "oil_checks": len(checks),
+                "tyre_logs": len(self.store.records(TYRE_LOGS)),
             },
         }
         async_dispatcher_send(self.hass, self.signal)
@@ -474,7 +517,7 @@ class VehicleManager:
 
     def snapshot(self, full: bool = False) -> dict[str, Any]:
         """JSON-safe view for the card (recent records) or the panel (``full``: everything)."""
-        names = (REFUELS, SERVICES, WASHES, OIL_CHECKS)
+        names = (REFUELS, SERVICES, WASHES, OIL_CHECKS, TYRE_LOGS)
         data: dict[str, Any] = {
             "entry_id": self.entry.entry_id,
             "title": self.entry.title,
@@ -579,8 +622,41 @@ class VehicleManager:
                 )
 
         changed |= await self._async_check_tyres()
+        changed |= await self._async_auto_tyre_log(notified)
         if changed:
             self.store.touch()
+
+    async def _async_auto_tyre_log(self, notified: dict[str, Any]) -> bool:
+        """Log the four tyre pressures twice a week (like the Keepr app); report once a day when that is not possible."""
+        if not self._tyre_entities():
+            return False
+        now = dt_util.now()
+        if now.weekday() not in TYRE_LOG_WEEKDAYS or now.hour < TYRE_LOG_HOUR:
+            return False
+        today = now.date().isoformat()
+        if any(r.get("date") == today for r in self.store.records(TYRE_LOGS)):
+            return False
+        pressures = self.pressures_bar()
+        if all(str(i) in pressures for i in range(4)):
+            record = {
+                "date": today,
+                "front_left": round(pressures["0"], 2),
+                "front_right": round(pressures["1"], 2),
+                "rear_left": round(pressures["2"], 2),
+                "rear_right": round(pressures["3"], 2),
+                "note": "Automatically logged",
+            }
+            odometer = self.odometer()
+            if odometer is not None:
+                record["odometer"] = odometer
+            self.store.add(TYRE_LOGS, record)
+            self.async_refresh()
+            return True
+        if now.hour >= TYRE_LOG_FAIL_HOUR and notified.get("tyre_log_fail") != today:
+            notified["tyre_log_fail"] = today
+            await self._async_notify(EVENT_TYRE_LOG_FAILED, "tyre_log_failed", {})
+            return True
+        return False
 
     async def _async_check_tyres(self) -> bool:
         deviation = self.view.get("tyre_deviation")
@@ -598,6 +674,7 @@ class VehicleManager:
             return True
         if deviation <= threshold - TYRE_HYSTERESIS and state["tyre_alert"]:
             state["tyre_alert"] = False
+            await self._async_notify(EVENT_TYRE_PRESSURE_OK, "tyre_ok", {"pressures": self.view["tyre_pressures"]})
             return True
         return False
 
