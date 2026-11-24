@@ -148,6 +148,7 @@
     await goTab("fuelprices");
     const tb = () => $('[data-station="sensor.fuel_tb"]');
     R.fp_cards = $$("#stations .station[data-station]").length === 3 && tb().classList.contains("best") && tb().textContent.includes("1.859") && $('[data-station="sensor.fuel_rv"]').textContent.includes("Not available");
+    R.fp_info = tb().querySelector(".info").textContent.includes("Shell Baroniebaan, Baroniebaan 2") && $('[data-station="sensor.fuel_pp"] .info') === null;
     R.fp_badge = !!tb().querySelector(".badge.down") && tb().textContent.includes("0.030") && !!$('[data-station="sensor.fuel_pp"] .badge.up');
     R.fp_gap = $("#gapcard").textContent.includes("0.070") && $("#gapcard").textContent.includes("Cheaper at Tilburg than at Poppel");
     R.fp_topup = $("#topup").textContent.includes("€50.27") && $("#topup").textContent.includes("48%") && $("#topup").textContent.includes("tank size in the settings");
@@ -171,7 +172,7 @@
     sf().requestSubmit(); await tick(5);
     R.settings_invalid_date = $("#settings-err").textContent.includes("dd-mm-yyyy");
     sf().elements.apk_date.value = "20-01-2027";
-    R.fp_station_form = sf().elements.fs_name_0.value === "Tilburg" && sf().elements.fs_entity_2.value === "sensor.fuel_rv" && sf().elements.fs_name_3.value === "" && sf().elements.tank_capacity_l.value === "52";
+    R.fp_station_form = sf().elements.fs_name_0.value === "Tilburg" && sf().elements.fs_entity_2.value === "sensor.fuel_rv" && sf().elements.fs_info_0.value === "sensor.tb_info" && sf().elements.fs_name_3.value === "" && sf().elements.tank_capacity_l.value === "52";
     sf().elements.fs_name_5.value = "Orphan"; sf().requestSubmit(); await tick(5);
     R.fp_station_err = $("#settings-err").textContent.includes("name and a sensor");
     sf().elements.fs_name_5.value = "";
@@ -183,7 +184,7 @@
     R.settings_sent = !!ss && ss.settings.tyre_target_bar === 2.4 && ss.settings.apk_date === "2027-01-20" && ss.settings.odometer_entity === null &&
       JSON.stringify(ss.settings.tyre_entities) === JSON.stringify(["sensor.t0", "sensor.t1", "sensor.t2", "sensor.t3"]) &&
       JSON.stringify(ss.settings.notify_targets) === JSON.stringify(["entity:notify.telegram", "service:mobile_app_phone"]) && ss.settings.panel_admin_only === false && ss.entry_id === "e1" &&
-      ss.settings.fuel_stations.length === 3 && ss.settings.fuel_stations[1].entity_id === "sensor.fuel_pp" && ss.settings.tank_capacity_l === 52;
+      ss.settings.fuel_stations.length === 3 && ss.settings.fuel_stations[1].entity_id === "sensor.fuel_pp" && ss.settings.fuel_stations[0].info_entity_id === "sensor.tb_info" && !("info_entity_id" in ss.settings.fuel_stations[1]) && ss.settings.tank_capacity_l === 52;
     // unsaved edits survive a pushed snapshot
     sf().elements.wash_soon_days.value = "21";
     sf().elements.wash_soon_days.dispatchEvent(new Event("input", { bubbles: true }));

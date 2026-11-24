@@ -153,7 +153,7 @@ class VehicleManager:
 
     def source_entities(self) -> list[str]:
         singles = [self._entity(k) for k in (CONF_ODOMETER_ENTITY, CONF_FUEL_LEVEL_ENTITY, CONF_OIL_LIFE_ENTITY)]
-        stations = [st["entity_id"] for st in self.stations()]
+        stations = [e for st in self.stations() for e in (st["entity_id"], st.get("info_entity_id"))]
         return [e for e in [*singles, *self._tyre_entities(), *stations] if e]
 
     def stations(self) -> list[dict[str, str]]:
@@ -250,6 +250,13 @@ class VehicleManager:
         value = _number(self.hass.states.get(entity_id))
         return value if value is not None and value > 0 else None
 
+    def _station_info(self, entity_id: str | None) -> str | None:
+        """Text of the optional info sensor (station name and address), if it has any."""
+        state = self.hass.states.get(entity_id) if entity_id else None
+        if state is None or state.state in ("unknown", "unavailable", ""):
+            return None
+        return state.state[:200]
+
     def _record_prices(self) -> None:
         """Log every price change (and the gap between the cheapest and the priciest station)."""
         now = dt_util.utcnow()
@@ -288,6 +295,7 @@ class VehicleManager:
             rows.append(
                 {
                     **st,
+                    "info": self._station_info(st.get("info_entity_id")),
                     "price": price,
                     "change": calc.price_change(log),
                     "trend": calc.price_trend(log, price, now),

@@ -330,7 +330,8 @@ async def test_fuel_prices_log_changes_gap_and_top_up(hass, mock_entry, freezer)
     hass.states.async_set("sensor.fuel_a", "1.900")
     hass.states.async_set("sensor.fuel_b", "1.800")
     hass.states.async_set("sensor.car_fuel", "40", {"unit_of_measurement": "%"})
-    stations = [{"name": "A", "entity_id": "sensor.fuel_a"}, {"name": "B", "entity_id": "sensor.fuel_b"}]
+    hass.states.async_set("sensor.fuel_b_info", "Shell Baroniebaan, Baroniebaan 2, 5037LZ")
+    stations = [{"name": "A", "entity_id": "sensor.fuel_a"}, {"name": "B", "entity_id": "sensor.fuel_b", "info_entity_id": "sensor.fuel_b_info"}]
     await setup(hass, mock_entry, freezer, "2026-11-01 12:00:00+01:00", fuel_stations=stations, tank_capacity_l=50.0,
                 fuel_level_entity="sensor.car_fuel")
     manager = mock_entry.runtime_data
@@ -339,6 +340,8 @@ async def test_fuel_prices_log_changes_gap_and_top_up(hass, mock_entry, freezer)
     assert prices["gap"]["value"] == 0.1 and prices["gap"]["cheapest"] == "B" and prices["gap"]["priciest"] == "A"
     assert prices["tank"] == {"liters": 50.0, "source": "setting", "fuel_percent": 40.0}
     assert prices["stations"][1]["top_up"] == {"liters": 30.0, "cost": 54.0}
+    assert prices["stations"][1]["info"] == "Shell Baroniebaan, Baroniebaan 2, 5037LZ" and prices["stations"][0]["info"] is None
+    assert "sensor.fuel_b_info" in manager.source_entities()
     assert val(hass, mock_entry, "cheapest_fuel_price") == "1.8"
     assert hass.states.get(eid(hass, mock_entry, "cheapest_fuel_price")).attributes["station"] == "B"
     # an unchanged price is not logged again, a changed one is

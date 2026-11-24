@@ -8,7 +8,7 @@ window.mockSnapshot = (entryId = "e1", o = {}) => ({
     oil_estimate: { km: 8000, date: "2027-06-01", estimate: true }, tyre_target: 2.5, tyre_pressures: { 0: 2.5, 1: 2.19, 2: 2.45, 3: 2.5 },
     fuel_prices: {
       stations: [
-        { name: "Tilburg", entity_id: "sensor.fuel_tb", price: 1.859, change: { previous: 1.889, direction: "down", delta: -0.03, since: "2026-11-10T08:00:00+00:00" }, trend: { pct: -3.2, days: 40, average: 1.92 }, best_day: { cheapest: 1, cheapest_average: 1.842, priciest: 4, gap: 0.021 } },
+        { name: "Tilburg", entity_id: "sensor.fuel_tb", info: "Shell Baroniebaan, Baroniebaan 2, 5037LZ", price: 1.859, change: { previous: 1.889, direction: "down", delta: -0.03, since: "2026-11-10T08:00:00+00:00" }, trend: { pct: -3.2, days: 40, average: 1.92 }, best_day: { cheapest: 1, cheapest_average: 1.842, priciest: 4, gap: 0.021 } },
         { name: "Poppel", entity_id: "sensor.fuel_pp", price: 1.929, change: { previous: 1.9, direction: "up", delta: 0.029, since: "2026-11-12T08:00:00+00:00" }, trend: null, best_day: null },
         { name: "Ravels", entity_id: "sensor.fuel_rv", price: null, change: { previous: null, direction: null, delta: null, since: null }, trend: null, best_day: null },
       ],
@@ -33,7 +33,7 @@ window.mockSnapshot = (entryId = "e1", o = {}) => ({
     service_interval_days: 365, odometer_entity: "sensor.car_odometer", fuel_level_entity: "sensor.car_fuel", oil_life_entity: "sensor.car_oil",
     tyre_entities: ["sensor.t0", "sensor.t1", "sensor.t2"],
     tank_capacity_l: 52,
-    fuel_stations: [{ name: "Tilburg", entity_id: "sensor.fuel_tb" }, { name: "Poppel", entity_id: "sensor.fuel_pp" }, { name: "Ravels", entity_id: "sensor.fuel_rv" }], notify_targets: ["entity:notify.telegram"], apk_date: null, panel_admin_only: false, ...o.settings,
+    fuel_stations: [{ name: "Tilburg", entity_id: "sensor.fuel_tb", info_entity_id: "sensor.tb_info" }, { name: "Poppel", entity_id: "sensor.fuel_pp" }, { name: "Ravels", entity_id: "sensor.fuel_rv" }], notify_targets: ["entity:notify.telegram"], apk_date: null, panel_admin_only: false, ...o.settings,
   },
   monthly: [
     { month: "2026-08", refuel: 80, service: 0, wash: 10 }, { month: "2026-09", refuel: 150, service: 420, wash: 0 },

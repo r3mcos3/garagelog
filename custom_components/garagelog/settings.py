@@ -68,7 +68,10 @@ def _stations(value: Any) -> list[dict[str, str]]:
         if entity in seen:
             raise SettingsError(f"fuel station entity {entity} is used twice")
         seen.add(entity)
-        stations.append({"name": name[:40], "entity_id": entity})
+        info = str(item.get("info_entity_id", "")).strip()
+        if info and "." not in info:
+            raise SettingsError("the info entity of a fuel station must be an entity id")
+        stations.append({"name": name[:40], "entity_id": entity, **({"info_entity_id": info} if info else {})})
     return stations
 
 

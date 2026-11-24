@@ -36,7 +36,7 @@
       fp_trend_below: (n, pct, d) => `${n} is ${pct}% below its own average of the last ${d} days: a decent time to fill up.`, fp_trend_above: (n, pct, d) => `${n} is ${pct}% above its own average of the last ${d} days: wait if you can.`,
       fp_best_day: (n, day, avg, gap) => `${day} tend to be cheapest at ${n} (${avg} on average); the priciest day runs ${gap} higher.`,
       weekdays: ["Mondays", "Tuesdays", "Wednesdays", "Thursdays", "Fridays", "Saturdays", "Sundays"],
-      s_stations: "Fuel prices", s_stations_hint: "Pick the sensors that hold the price per litre of a station (for example a scrape sensor). Garagelog stores every price change.", s_station_name: "Station name", s_station_entity: "Price sensor", s_tank: "Tank size (litres)", s_station_err: "Fill in both a name and a sensor for every station.",
+      s_stations: "Fuel prices", s_stations_hint: "Pick the sensors that hold the price per litre of a station (for example a scrape sensor). Garagelog stores every price change.", s_station_name: "Station name", s_station_entity: "Price sensor", s_station_info: "Name/address sensor (optional)", s_tank: "Tank size (litres)", s_station_err: "Fill in both a name and a sensor for every station.",
       tyres_live: "Tyre pressure now", tyres_hint: "No tyre pressures yet. Link the four tyre sensors under Settings.", tyres_log: "Tyre history (changes, repairs)", oil_checks: "Oil checks", oil_changes: "Oil changes",
       period: "Period", p_3: "Last 3 months", p_6: "Last 6 months", p_12: "Last 12 months", p_year: "This year", p_all: "All",
       total: "Total", c_refuel: "Fuel", c_service: "Maintenance", c_wash: "Washing", month: "Month", no_costs: "No costs in this period.",
@@ -82,7 +82,7 @@
       fp_trend_below: (n, pct, d) => `${n} zit ${pct}% onder het eigen gemiddelde van de afgelopen ${d} dagen: een goed moment om te tanken.`, fp_trend_above: (n, pct, d) => `${n} zit ${pct}% boven het eigen gemiddelde van de afgelopen ${d} dagen: wacht als het kan.`,
       fp_best_day: (n, day, avg, gap) => `${day} zijn meestal het goedkoopst bij ${n} (gemiddeld ${avg}); de duurste dag ligt ${gap} hoger.`,
       weekdays: ["maandagen", "dinsdagen", "woensdagen", "donderdagen", "vrijdagen", "zaterdagen", "zondagen"],
-      s_stations: "Brandstofprijzen", s_stations_hint: "Kies de sensoren met de literprijs van een tankstation (bijvoorbeeld een scrape-sensor). Garagelog bewaart elke prijswijziging.", s_station_name: "Naam station", s_station_entity: "Prijssensor", s_tank: "Tankinhoud (liters)", s_station_err: "Vul bij elk station zowel een naam als een sensor in.",
+      s_stations: "Brandstofprijzen", s_stations_hint: "Kies de sensoren met de literprijs van een tankstation (bijvoorbeeld een scrape-sensor). Garagelog bewaart elke prijswijziging.", s_station_name: "Naam station", s_station_entity: "Prijssensor", s_station_info: "Naam/adres-sensor (optioneel)", s_tank: "Tankinhoud (liters)", s_station_err: "Vul bij elk station zowel een naam als een sensor in.",
       tyres_live: "Bandenspanning nu", tyres_hint: "Nog geen bandenspanning. Koppel de vier bandensensoren onder Instellingen.", tyres_log: "Bandengeschiedenis (wissel, reparatie)", oil_checks: "Olie-peilingen", oil_changes: "Olieverversingen",
       period: "Periode", p_3: "Laatste 3 maanden", p_6: "Laatste 6 maanden", p_12: "Laatste 12 maanden", p_year: "Dit jaar", p_all: "Alles",
       total: "Totaal", c_refuel: "Tanken", c_service: "Onderhoud", c_wash: "Wassen", month: "Maand", no_costs: "Geen kosten in deze periode.",
@@ -253,7 +253,7 @@
         .badge { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 8px; } .badge.up { color: var(--error-color, #db4437); background: color-mix(in srgb, var(--error-color, #db4437) 12%, transparent); } .badge.down { color: var(--success-color, #43a047); background: color-mix(in srgb, var(--success-color, #43a047) 12%, transparent); }
         .topups { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; margin-top: 10px; } .topups .cost { font-size: 22px; font-weight: 500; } .topups .best .cost { color: var(--success-color, #43a047); }
         .tips p { margin: 6px 0; font-size: 14px; } details.hist summary { cursor: pointer; padding: 6px 0; font-weight: 500; }
-        .fprow { display: grid; grid-template-columns: 1fr 1.4fr; gap: 8px; margin: 0 0 8px; }
+        .fprow { display: grid; grid-template-columns: 1fr 1.4fr 1.4fr; gap: 8px; margin: 0 0 8px; }
         .fprow input { min-width: 0; width: 100%; box-sizing: border-box; }
         .fprow:first-of-type { margin-top: 10px; }
         .narrow .fprow { grid-template-columns: 1fr; gap: 6px; margin-bottom: 14px; }
@@ -576,7 +576,7 @@
       const t = this.t, s = this._snap, fp = s.view.fuel_prices, history = s.price_history || {};
       if (!fp.stations.length) return `<div class="card"><div class="empty" id="nostations">${esc(t.fp_none)}</div></div>`;
       const best = fp.cheapest ? fp.cheapest.name : null;
-      const cards = fp.stations.map((st) => `<div class="station ${st.name === best && fp.stations.length > 1 ? "best" : ""}" data-station="${esc(st.entity_id)}"><div class="l">${esc(st.name)}</div>
+      const cards = fp.stations.map((st) => `<div class="station ${st.name === best && fp.stations.length > 1 ? "best" : ""}" data-station="${esc(st.entity_id)}"><div class="l">${esc(st.name)}</div>${st.info ? `<div class="hint info">${esc(st.info)}</div>` : ""}
         ${st.price != null ? `<div class="price">${this._num(st.price, 3)} <small>/ L</small></div>${this._badge(st.change)}` : `<div class="empty">${esc(t.fp_na)}</div>`}</div>`).join("");
       const g = fp.gap;
       const gapCard = `<div class="station" id="gapcard"><div class="l">${esc(t.fp_gap)}</div>${g ? `<div class="price">${this._num(g.value, 3)}</div>${g.delta ? `<span class="badge ${g.delta > 0 ? "up" : "down"}">${g.delta > 0 ? "▲" : "▼"} ${this._num(Math.abs(g.delta), 3)}</span>` : ""}<div class="hint">${esc(t.fp_gap_text(g.cheapest, g.priciest))}</div>` : `<div class="empty">${esc(t.fp_na)}</div>`}</div>`;
@@ -612,7 +612,7 @@
         : `<div class="empty">${esc(t.s_notify_none)}</div>`;
       const tyres = [0, 1, 2, 3].map((i) => ent(`tyre_${i}`, `${t.s_tyre} ${i + 1}`, st.tyre_entities[i])).join("");
       const stationList = st.fuel_stations || [];
-      const stationRows = Array.from({ length: 6 }, (_, i) => `<div class="fprow"><input type="text" name="fs_name_${i}" placeholder="${esc(t.s_station_name)}" value="${esc(stationList[i]?.name || "")}" ${dis} maxlength="40"><input type="text" list="pricelist" name="fs_entity_${i}" placeholder="${esc(t.s_station_entity)}" value="${esc(stationList[i]?.entity_id || "")}" ${dis} autocomplete="off"></div>`).join("");
+      const stationRows = Array.from({ length: 6 }, (_, i) => `<div class="fprow"><input type="text" name="fs_name_${i}" placeholder="${esc(t.s_station_name)}" value="${esc(stationList[i]?.name || "")}" ${dis} maxlength="40"><input type="text" list="pricelist" name="fs_entity_${i}" placeholder="${esc(t.s_station_entity)}" value="${esc(stationList[i]?.entity_id || "")}" ${dis} autocomplete="off"><input type="text" list="entlist" name="fs_info_${i}" placeholder="${esc(t.s_station_info)}" value="${esc(stationList[i]?.info_entity_id || "")}" ${dis} autocomplete="off"></div>`).join("");
       return `<form id="settings-form" class="settings">
         ${this.isAdmin ? "" : `<div class="alert">${esc(t.s_admin_only)}</div>`}
         <div class="card"><h2>${esc(t.s_notify)}</h2><div class="targets">${targets}</div></div>
@@ -652,7 +652,8 @@
         const name = str(`fs_name_${i}`), entity = str(`fs_entity_${i}`);
         if (!name && !entity) continue;
         if (!name || !entity) { err.textContent = t.s_station_err; return; }
-        fuelStations.push({ name, entity_id: entity });
+        const info = str(`fs_info_${i}`);
+        fuelStations.push(info ? { name, entity_id: entity, info_entity_id: info } : { name, entity_id: entity });
       }
       const settings = {
         fuel_stations: fuelStations, tank_capacity_l: num("tank_capacity_l"),
