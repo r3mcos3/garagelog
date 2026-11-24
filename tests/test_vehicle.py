@@ -405,12 +405,12 @@ async def test_fuel_price_change_notifications(hass, mock_entry, freezer, notifi
     assert events[0].data["cheapest"] == "B" and events[0].data["gap"] == 0.06
     assert len(notified) == 1
     assert "Fuel price up" in notified[0].data["title"] and "Shell Baroniebaan" in notified[0].data["message"]
-    # switched off: nothing is sent, but the price is still logged
-    hass.config_entries.async_update_entry(mock_entry, options={**mock_entry.options, "fuel_price_notify": False})
+    # switched off: no message is sent, the event and the log stay
+    hass.config_entries.async_update_entry(mock_entry, options={**mock_entry.options, "notify_off": ["fuel_price"]})
     mock_entry.runtime_data.async_refresh()
     hass.states.async_set("sensor.fuel_b", "1.700")
     await hass.async_block_till_done()
-    assert len(events) == 1 and len(notified) == 1
+    assert len(events) == 2 and len(notified) == 1  # the event still fires (automations), the message is not sent
     assert mock_entry.runtime_data.store.price_log("sensor.fuel_b")[-1]["price"] == 1.7
 
 

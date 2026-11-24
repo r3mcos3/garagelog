@@ -285,3 +285,18 @@ async def test_settings_fuel_stations_validated_and_saved(hass, hass_ws_client, 
     assert res["success"]
     await hass.async_block_till_done()
     assert "fuel_stations" not in setup_entry.options
+
+
+async def test_settings_notify_off_validated_and_saved(hass, hass_ws_client, setup_entry):
+    client = await hass_ws_client(hass)
+    res = await ws(client, type="garagelog/settings_set", entry_id=setup_entry.entry_id,
+                   settings={"notify_off": ["wash", "fuel_price", "wash"]})
+    assert res["success"]
+    await hass.async_block_till_done()
+    assert setup_entry.options["notify_off"] == ["fuel_price", "wash"]
+    res = await ws(client, type="garagelog/settings_set", entry_id=setup_entry.entry_id, settings={"notify_off": ["nonsense"]})
+    assert not res["success"]
+    res = await ws(client, type="garagelog/settings_set", entry_id=setup_entry.entry_id, settings={"notify_off": []})
+    assert res["success"]
+    await hass.async_block_till_done()
+    assert "notify_off" not in setup_entry.options

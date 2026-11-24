@@ -34,7 +34,8 @@ CONF_SERVICE_INTERVAL_KM = "service_interval_km"
 CONF_SERVICE_INTERVAL_DAYS = "service_interval_days"
 CONF_APK_DATE = "apk_date"
 CONF_PANEL_ADMIN = "panel_admin_only"
-CONF_FUEL_NOTIFY = "fuel_price_notify"
+CONF_NOTIFY_OFF = "notify_off"
+NOTIFY_KINDS = ("apk", "service", "wash", "tyre", "tyre_ok", "oil_check", "oil_change", "fuel_price", "tyre_log_failed")
 CONF_FUEL_NOTIFY_MIN = "fuel_price_notify_min"
 
 DEFAULT_TYRE_TARGET = 2.5

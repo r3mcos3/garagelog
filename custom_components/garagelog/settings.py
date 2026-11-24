@@ -8,9 +8,9 @@ from .const import (
     CONF_APK_DATE,
     CONF_APK_DAYS,
     CONF_FUEL_LEVEL_ENTITY,
-    CONF_FUEL_NOTIFY,
     CONF_FUEL_NOTIFY_MIN,
     CONF_FUEL_STATIONS,
+    CONF_NOTIFY_OFF,
     CONF_NOTIFY_TARGETS,
     CONF_ODOMETER_ENTITY,
     CONF_OIL_CHECK_DAY,
@@ -33,6 +33,7 @@ from .const import (
     DEFAULT_WASH_DUE_DAYS,
     DEFAULT_WASH_SOON_DAYS,
     MAX_FUEL_STATIONS,
+    NOTIFY_KINDS,
 )
 
 FLOATS = {
@@ -52,7 +53,7 @@ INTS = {
 ENTITIES = (CONF_ODOMETER_ENTITY, CONF_FUEL_LEVEL_ENTITY, CONF_OIL_LIFE_ENTITY)
 KEYS = (
     *FLOATS, *INTS, *ENTITIES, CONF_TYRE_ENTITIES, CONF_FUEL_STATIONS, CONF_NOTIFY_TARGETS, CONF_APK_DATE, CONF_PANEL_ADMIN,
-    CONF_FUEL_NOTIFY,
+    CONF_NOTIFY_OFF,
 )
 
 
@@ -101,9 +102,13 @@ def clean(raw: dict[str, Any]) -> dict[str, Any]:
             if not isinstance(value, list) or not all(isinstance(v, str) for v in value):
                 raise SettingsError(f"{key} must be a list of strings")
             out[key] = value
+        elif key == CONF_NOTIFY_OFF:
+            if not isinstance(value, list) or not all(v in NOTIFY_KINDS for v in value):
+                raise SettingsError(f"{key} must be a list of notification kinds")
+            out[key] = sorted(set(value))
         elif key == CONF_FUEL_STATIONS:
             out[key] = _stations(value)
-        elif key in (CONF_PANEL_ADMIN, CONF_FUEL_NOTIFY):
+        elif key == CONF_PANEL_ADMIN:
             out[key] = bool(value)
         else:
             out[key] = str(value)
@@ -129,5 +134,5 @@ def effective(entry_data: dict[str, Any], options: dict[str, Any]) -> dict[str, 
     result[CONF_NOTIFY_TARGETS] = list(options.get(CONF_NOTIFY_TARGETS) or [])
     result[CONF_APK_DATE] = options.get(CONF_APK_DATE) or None
     result[CONF_PANEL_ADMIN] = bool(options.get(CONF_PANEL_ADMIN, False))
-    result[CONF_FUEL_NOTIFY] = bool(options.get(CONF_FUEL_NOTIFY, True))
+    result[CONF_NOTIFY_OFF] = [k for k in options.get(CONF_NOTIFY_OFF) or [] if k in NOTIFY_KINDS]
     return result

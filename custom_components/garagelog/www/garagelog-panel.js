@@ -25,7 +25,8 @@
       empty: "Nothing logged yet.",
       add_refuels: "Add refuel", add_services: "Add maintenance", add_washes: "Add wash", add_tyres: "Add tyre entry", add_oil: "Add oil check", add_oilchange: "Add oil change", add_tyrelog: "Add tyre pressures", tyres_pressure_log: "Tyre pressure log (automatic: Wednesday and Sunday)",
       f_front_left: "Front left (bar)", f_front_right: "Front right (bar)", f_rear_left: "Rear left (bar)", f_rear_right: "Rear right (bar)",
-      s_fuel_notify: "Notify when a fuel price changes", s_fuel_notify_min: "Only from a change of (€/L)",
+      s_notify_kinds: "Which notifications do you want?", nk_apk: "APK due", nk_service: "Service due", nk_wash: "Time to wash", nk_tyre: "Tyre pressure low", nk_tyre_ok: "Tyre pressure back to normal", nk_oil_check: "Check the oil", nk_oil_change: "Oil change approaching", nk_fuel_price: "Fuel price changed", nk_tyre_log_failed: "Automatic tyre log failed",
+      s_fuel_notify_min: "Only from a change of (€/L)",
       edit_record: "Edit entry",
       f_date: "Date", f_odometer: "Odometer (km)", f_liters: "Litres", f_total_cost: "Total cost", f_price_per_litre: "Price per litre", f_full: "Full tank",
       f_note: "Note", f_type: "Type", f_cost: "Cost", f_next_due_date: "Next due date", f_next_due_odometer: "Next due at (km)", f_level: "Level",
@@ -73,7 +74,8 @@
       empty: "Nog niets vastgelegd.",
       add_refuels: "Tankbeurt toevoegen", add_services: "Onderhoud toevoegen", add_washes: "Wasbeurt toevoegen", add_tyres: "Bandenregistratie toevoegen", add_oil: "Olie-peiling toevoegen", add_oilchange: "Olieverversing toevoegen", add_tyrelog: "Bandenspanning toevoegen", tyres_pressure_log: "Bandenspanninglog (automatisch: woensdag en zondag)",
       f_front_left: "Linksvoor (bar)", f_front_right: "Rechtsvoor (bar)", f_rear_left: "Linksachter (bar)", f_rear_right: "Rechtsachter (bar)",
-      s_fuel_notify: "Melding bij een prijswijziging van brandstof", s_fuel_notify_min: "Pas vanaf een wijziging van (€/L)",
+      s_notify_kinds: "Welke meldingen wil je?", nk_apk: "APK binnenkort", nk_service: "Onderhoudsbeurt nadert", nk_wash: "Tijd om te wassen", nk_tyre: "Bandenspanning laag", nk_tyre_ok: "Bandenspanning weer normaal", nk_oil_check: "Olie peilen", nk_oil_change: "Olie verversen nadert", nk_fuel_price: "Brandstofprijs gewijzigd", nk_tyre_log_failed: "Automatisch bandenlog mislukt",
+      s_fuel_notify_min: "Pas vanaf een wijziging van (€/L)",
       edit_record: "Registratie bewerken",
       f_date: "Datum", f_odometer: "Kilometerstand (km)", f_liters: "Liters", f_total_cost: "Totaalbedrag", f_price_per_litre: "Prijs per liter", f_full: "Vol getankt",
       f_note: "Notitie", f_type: "Soort", f_cost: "Kosten", f_next_due_date: "Volgende beurt (datum)", f_next_due_odometer: "Volgende beurt bij (km)", f_level: "Peil",
@@ -122,6 +124,7 @@
   const TABS = ["overview", "refuels", "fuelprices", "services", "washes", "tyres", "oil", "costs", "settings"];
 
   /** Field specs of the add/edit forms: [key, kind, step, required] */
+  const NOTIFY_KINDS = ["apk", "service", "wash", "tyre", "tyre_ok", "oil_check", "oil_change", "fuel_price", "tyre_log_failed"];
   const FORMS = {
     refuels: [["date", "date"], ["odometer", "num", "1"], ["liters", "num", "0.01", true], ["total_cost", "num", "0.01"], ["price_per_litre", "num", "0.001"], ["full", "bool"], ["note", "text"]],
     services: [["date", "date"], ["type", "select"], ["odometer", "num", "1"], ["cost", "num", "0.01"], ["next_due_date", "date"], ["next_due_odometer", "num", "1"], ["note", "text"]],
@@ -635,7 +638,8 @@
         </div>${list}</div>
         <div class="card"><h2>${esc(t.s_stations)}</h2><div class="hint">${esc(t.s_stations_hint)}</div>${stationRows}
           <div class="settings-grid">${num("tank_capacity_l", t.s_tank, st.tank_capacity_l, "0.1")}${num("fuel_price_notify_min", t.s_fuel_notify_min, st.fuel_price_notify_min, "0.001")}</div>
-          <label class="field check"><input type="checkbox" name="fuel_price_notify" ${st.fuel_price_notify ? "checked" : ""} ${dis}> ${esc(t.s_fuel_notify)}</label></div>
+          </div>
+        <div class="card"><h2>${esc(t.s_notify_kinds)}</h2>${NOTIFY_KINDS.map((k) => `<label class="field check"><input type="checkbox" name="nt_${k}" ${(st.notify_off || []).includes(k) ? "" : "checked"} ${dis}> ${esc(t["nk_" + k])}</label>`).join("")}</div>
         <div class="card"><h2>${esc(t.s_panel)}</h2><label class="field check"><input type="checkbox" name="panel_admin_only" ${st.panel_admin_only ? "checked" : ""} ${dis}> ${esc(t.s_admin)}</label>
           <div class="hint">${esc(t.s_more)}</div></div>
         <div class="err" id="settings-err"></div>
@@ -664,7 +668,7 @@
         fuelStations.push(info ? { name, entity_id: entity, info_entity_id: info } : { name, entity_id: entity });
       }
       const settings = {
-        fuel_stations: fuelStations, tank_capacity_l: num("tank_capacity_l"), fuel_price_notify_min: num("fuel_price_notify_min"), fuel_price_notify: f.get("fuel_price_notify") === "on",
+        fuel_stations: fuelStations, tank_capacity_l: num("tank_capacity_l"), fuel_price_notify_min: num("fuel_price_notify_min"), notify_off: NOTIFY_KINDS.filter((k) => f.get("nt_" + k) !== "on"),
         tyre_target_bar: num("tyre_target_bar"), tyre_threshold_bar: num("tyre_threshold_bar"), wash_soon_days: num("wash_soon_days"), wash_due_days: num("wash_due_days"),
         apk_days: num("apk_days"), oil_check_day: num("oil_check_day"), service_interval_km: num("service_interval_km"), service_interval_days: num("service_interval_days"),
         apk_date: apk, odometer_entity: str("odometer_entity"), fuel_level_entity: str("fuel_level_entity"), oil_life_entity: str("oil_life_entity"),

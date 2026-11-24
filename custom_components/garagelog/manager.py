@@ -20,9 +20,9 @@ from .const import (
     CONF_APK_DATE,
     CONF_APK_DAYS,
     CONF_FUEL_LEVEL_ENTITY,
-    CONF_FUEL_NOTIFY,
     CONF_FUEL_NOTIFY_MIN,
     CONF_FUEL_STATIONS,
+    CONF_NOTIFY_OFF,
     CONF_NOTIFY_TARGETS,
     CONF_ODOMETER_ENTITY,
     CONF_OIL_CHECK_DAY,
@@ -288,8 +288,6 @@ class VehicleManager:
 
     def _notify_price_changes(self, changes: list[dict[str, Any]], stations: list[dict[str, str]]) -> None:
         """One notification per station whose price changed (like the Keepr app), when switched on."""
-        if not self.opt(CONF_FUEL_NOTIFY, True):
-            return
         minimum = float(self.opt(CONF_FUEL_NOTIFY_MIN, 0.0))
         now_prices = [(st["name"], self.station_price(st["entity_id"])) for st in stations]
         now_prices = [(n, p) for n, p in now_prices if p is not None]
@@ -555,7 +553,7 @@ class VehicleManager:
         self.hass.bus.async_fire(event, payload)
         title, text = message(self.hass.config.language, kind, payload)
         targets = list(self.entry.options.get(CONF_NOTIFY_TARGETS) or [])
-        if targets:
+        if targets and kind not in (self.entry.options.get(CONF_NOTIFY_OFF) or []):
             await async_send(self.hass, targets, title, text)
 
     async def async_check(self) -> None:
