@@ -40,6 +40,8 @@
     };
     const realMap = window.L.map;
     window.L.map = (el) => { const m = realMap(el); m.fitBounds = () => { mapCalls.views += 1; }; m.setView = () => { mapCalls.views += 1; }; return m; };
+    const printed = { html: "", printed: 0 };
+    window.open = () => ({ document: { write: (h) => { printed.html += h; }, close() {} }, focus() {}, print: () => { printed.printed += 1; } });
     const geoUrls = [];
     window.fetch = async (url) => { geoUrls.push(String(url)); return { json: async () => ({ address: { road: "Baroniebaan", house_number: "2", city: "Tilburg" } }) }; };
     const panel = document.createElement("garagelog-panel");
@@ -59,7 +61,7 @@
 
     // header + tabs
     R.vehicle_select = $$("#vehicle option").length === 2 && $("#vehicle").value === "e1";
-    R.tabs = $$(".tabs button").map((b) => b.textContent).join(",") === "Overview,Fuel,Fuel prices,Maintenance,Washing,Tyres,Oil,Location,Costs,Settings";
+    R.tabs = $$(".tabs button").map((b) => b.textContent).join(",") === "Overview,Fuel,Fuel prices,Maintenance,Washing,Tyres,Oil,Location,Costs,Report,Settings";
     R.no_menu_on_desktop = !$("#menu");
 
     // overview
@@ -186,6 +188,17 @@
     R.fp_history_info = $('details.hist[data-hist="Tilburg"] .info').textContent.includes("Shell Baroniebaan");
     R.fp_history = $$("details.hist").length === 4 && $('details.hist[data-hist="Tilburg"]').textContent.includes("Tilburg (3)") && $('details.hist[data-hist="Tilburg"] .badge.down') !== null;
 
+    // monthly report
+    await goTab("report");
+    const rm = $("#reportmonth");
+    R.report_months = $$("#reportmonth option").map((o) => o.value).join(",") === "2026-11,2026-10,2026-09,2026-05";
+    rm.value = "2026-10"; rm.dispatchEvent(new Event("change", { bubbles: true })); await tick(5);
+    const rp = $("#report").textContent;
+    R.report_tiles = rp.includes("489") && rp.includes("300") && rp.includes("+16%") && rp.includes("1 wash") && rp.includes("38.0");
+    R.report_tables = $$("#report table").length === 2 && rp.includes("winter") && rp.includes("51,300");
+    await click("#report-print"); await tick(5);
+    R.report_print = printed.printed === 1 && printed.html.includes("Monthly report") && printed.html.includes("489");
+
     // location
     await goTab("location");
     await tick(30);
@@ -260,7 +273,7 @@
     // Dutch
     hass.language = "nl"; panel.hass = hass; hass.language = "nl";
     panel._render(); await tick(5);
-    R.dutch_tabs = $$(".tabs button").map((b) => b.textContent).join(",") === "Overzicht,Tanken,Brandstofprijzen,Onderhoud,Wassen,Banden,Olie,Locatie,Kosten,Instellingen";
+    R.dutch_tabs = $$(".tabs button").map((b) => b.textContent).join(",") === "Overzicht,Tanken,Brandstofprijzen,Onderhoud,Wassen,Banden,Olie,Locatie,Kosten,Verslag,Instellingen";
     R.dutch_overview = $(".card h2").textContent === "Aandacht nodig" && $('[data-w="apk"]').textContent.includes("27 dagen");
 
     // non-admin cannot save settings
