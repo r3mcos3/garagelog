@@ -70,7 +70,7 @@
     R.tile_apk = tile("APK expiry").classList.contains("warn") && tile("APK expiry").textContent.includes("20-12-2026");
     R.tile_service = tile("Next service").textContent.includes("90 d / 4,200 km");
     R.tile_refuel = tile("Last refuel").textContent.includes("41.5 L") && tile("Last refuel").textContent.includes("01-11-2026");
-    R.tile_consumption = tile("Consumption").textContent.includes("6.4 L/100") && tile("Consumption").textContent.includes("km/L");
+    R.tile_consumption = tile("Consumption").textContent.includes("15.6 km/L") && tile("Consumption").textContent.includes("km/L");
     R.tile_costs = tile("Cost this month").textContent.includes("112.50") && tile("Cost this year").textContent.includes("1,640");
     R.tile_wash = tile("Last wash").classList.contains("warn") && tile("Last wash").textContent.includes("45");
     R.sources = $$(".sources tr").length === 3 && $('[data-src="fuel_level"]').textContent.includes("48");
@@ -82,7 +82,7 @@
     await goTab("refuels");
     R.refuel_rows = $$("table[data-table=refuels] tbody tr").length === 2;
     R.refuel_date_format = $("tr[data-id=r2] td").textContent === "01-11-2026";
-    R.refuel_consumption = $("tr[data-id=r2]").textContent.includes("6.1");
+    R.refuel_consumption = $("tr[data-id=r2]").textContent.includes("16.4");
     R.xss_escaped = !window.__xss && !$("tr[data-id=r2] img") && $("tr[data-id=r2]").textContent.includes("<img");
 
     // add refuel

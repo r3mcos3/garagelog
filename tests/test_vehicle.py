@@ -60,9 +60,10 @@ async def test_refuel_consumption_and_costs(hass, mock_entry, freezer):
     await call(hass, mock_entry, "log_refuel", liters=40, odometer=1000, total_cost=72, date="2026-01-10")
     res = await call(hass, mock_entry, "log_refuel", liters=36, odometer=1600, price_per_litre=1.9, date="2026-03-01")
     assert res["record"]["total_cost"] == 68.4 and res["record"]["id"]
-    assert float(val(hass, mock_entry, "last_consumption")) == 6.0
-    assert float(val(hass, mock_entry, "average_consumption")) == 6.0
-    assert hass.states.get(eid(hass, mock_entry, "average_consumption")).attributes["km_per_litre"] == 16.67
+    assert float(val(hass, mock_entry, "last_consumption")) == 16.67
+    assert float(val(hass, mock_entry, "average_consumption")) == 16.67
+    attrs = hass.states.get(eid(hass, mock_entry, "average_consumption")).attributes
+    assert attrs["unit_of_measurement"] == "km/L" and attrs["l_per_100km"] == 6.0
     assert float(val(hass, mock_entry, "last_price_per_litre")) == 1.9
     assert float(val(hass, mock_entry, "total_fuel")) == 76
     assert float(val(hass, mock_entry, "total_cost")) == 140.4

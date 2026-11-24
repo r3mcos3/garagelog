@@ -117,8 +117,9 @@
       const est = v.oil_estimate;
       const oilCls = v.oil_check_due ? "warn" : est && est.km !== null && est.km <= 1000 ? "warn" : "";
       const oilVal = v.oil_check_due ? t.check_oil : est && est.km !== null ? `${t.oil_est}${this._num(est.km)} ${t.km}` : t.oil_ok;
-      const cons = v.average_consumption === null ? t.unknown : `${this._num(v.average_consumption, 1)} L/100`;
-      const consSub = v.last_consumption === null ? "" : `${t.last} ${this._num(v.last_consumption, 1)}`;
+      const kml = (x) => (x ? 100 / x : null);
+      const cons = v.average_consumption === null ? t.unknown : `${this._num(kml(v.average_consumption), 1)} km/L`;
+      const consSub = v.last_consumption === null ? "" : `${t.last} ${this._num(kml(v.last_consumption), 1)}`;
       const brand = [s.view.rdw?.brand, s.view.rdw?.model].filter(Boolean).join(" ");
       root.innerHTML = `${style}<ha-card>
         <div class="head"><span class="name">${esc(brand || s.title)}</span><span class="plate">${esc(s.plate)}</span></div>

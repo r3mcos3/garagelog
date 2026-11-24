@@ -16,6 +16,7 @@ from homeassistant.const import UnitOfLength, UnitOfPressure, UnitOfTime, UnitOf
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
+from . import calc
 from .entity import GaragelogEntity
 
 View = dict[str, Any]
@@ -42,23 +43,19 @@ DESCRIPTIONS: tuple[GaragelogSensorDescription, ...] = (
     ),
     GaragelogSensorDescription(
         key="last_consumption",
-        native_unit_of_measurement="L/100 km",
-        suggested_display_precision=2,
+        native_unit_of_measurement="km/L",
+        suggested_display_precision=1,
         icon="mdi:gas-station",
-        value_fn=lambda v: v["last_consumption"],
-        attrs_fn=lambda v: {
-            "km_per_litre": round(100 / v["last_consumption"], 2) if v["last_consumption"] else None
-        },
+        value_fn=lambda v: calc.km_per_litre(v["last_consumption"]),
+        attrs_fn=lambda v: {"l_per_100km": v["last_consumption"]},
     ),
     GaragelogSensorDescription(
         key="average_consumption",
-        native_unit_of_measurement="L/100 km",
-        suggested_display_precision=2,
+        native_unit_of_measurement="km/L",
+        suggested_display_precision=1,
         icon="mdi:gas-station",
-        value_fn=lambda v: v["average_consumption"],
-        attrs_fn=lambda v: {
-            "km_per_litre": round(100 / v["average_consumption"], 2) if v["average_consumption"] else None
-        },
+        value_fn=lambda v: calc.km_per_litre(v["average_consumption"]),
+        attrs_fn=lambda v: {"l_per_100km": v["average_consumption"]},
     ),
     GaragelogSensorDescription(
         key="last_price_per_litre",

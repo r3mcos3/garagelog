@@ -3,7 +3,7 @@
 **Garagelog: car management for Home Assistant** — fuel log, consumption and costs, maintenance, APK, washing, tyre pressure
 and oil, in one standalone integration. No cloud account, no app, no server: everything is stored in Home Assistant.
 
-> Status: **0.7.0 (sidebar panel, fuel prices), only tried in automated tests and in a first install on the author's Home Assistant.** See `docs/testen.md`.
+> Status: **0.7.1 (sidebar panel, fuel prices), only tried in automated tests and in a first install on the author's Home Assistant.** See `docs/testen.md`.
 
 ## What it does
 
@@ -11,7 +11,7 @@ and oil, in one standalone integration. No cloud account, no app, no server: eve
 - **Source entities.** Optionally pick the entities your car already provides (odometer, fuel level, tyre pressures, oil life %,
   for example from FordConnect). Tyre pressures: pick four sensors, or one sensor that carries `frontLeft`,
   `frontRight`, `rearLeft` and `rearRight` as attributes (for example "2.53 bar"). Everything else you log by hand.
-- **Refuel log** (`garagelog.log_refuel`): consumption in L/100 km and km/L (full-tank method), cost, price per litre, totals.
+- **Refuel log** (`garagelog.log_refuel`): consumption in km/L (full-tank method; the sensors also carry `l_per_100km`), cost, price per litre, totals.
 - **Maintenance log** (`garagelog.log_service`) with next service in days and km.
 - **APK reminder** 30 days ahead, once per APK date.
 - **Washing:** days since the last wash; reminders at 30 and 60 days.

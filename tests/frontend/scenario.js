@@ -39,7 +39,7 @@
     R.odometer = tile("Odometer").textContent.includes("52,340");
     R.apk_ok = tile("APK").classList.contains("ok") && tile("APK").textContent.includes("200");
     R.service_text = tile("Next service").textContent.includes("90 d / 4,200 km");
-    R.consumption = tile("Consumption").textContent.includes("6.4 L/100") && tile("Consumption").textContent.includes("last 6.1");
+    R.consumption = tile("Consumption").textContent.includes("15.6 km/L") && tile("Consumption").textContent.includes("last 16.4");
     R.money = tile("This month").textContent.includes("€112.50") || tile("This month").textContent.includes("EUR");
     R.wash_ok = tile("Wash").classList.contains("ok") && tile("Wash").textContent.includes("12 d");
     R.tyres_ok = tile("Tyres").classList.contains("ok");

@@ -14,7 +14,7 @@ naam als zoekterm niet uniek. Hernoemen: zie CLAUDE.md (alles via `DOMAIN` in `c
 | Entiteit | Soort | Betekenis |
 |---|---|---|
 | `sensor.<auto>_odometer` | sensor (km) | km-stand: bron-entiteit, anders hoogste gelogde stand |
-| `sensor.<auto>_last_consumption` / `_average_consumption` | sensor (l/100 km) | laatste en gemiddelde verbruik; attribuut `km_per_litre` |
+| `sensor.<auto>_last_consumption` / `_average_consumption` | sensor (km/L) | laatste en gemiddelde verbruik; attribuut `l_per_100km` |
 | `sensor.<auto>_last_price_per_litre` | sensor (EUR/l) | prijs per liter van de laatste tankbeurt |
 | `sensor.<auto>_total_fuel` | sensor (l) | totaal getankt |
 | `sensor.<auto>_total_cost`, `_cost_this_year`, `_cost_this_month`, `_average_monthly_cost` | sensor (EUR) | tank + onderhoud + wassen |
