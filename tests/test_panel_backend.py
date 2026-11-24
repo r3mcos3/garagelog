@@ -300,3 +300,14 @@ async def test_settings_notify_off_validated_and_saved(hass, hass_ws_client, set
     assert res["success"]
     await hass.async_block_till_done()
     assert "notify_off" not in setup_entry.options
+
+
+async def test_settings_location_entity_saved(hass, hass_ws_client, setup_entry):
+    client = await hass_ws_client(hass)
+    res = await ws(client, type="garagelog/settings_set", entry_id=setup_entry.entry_id,
+                   settings={"location_entity": "device_tracker.car"})
+    assert res["success"]
+    await hass.async_block_till_done()
+    assert setup_entry.options["location_entity"] == "device_tracker.car"
+    snap = setup_entry.runtime_data.snapshot(full=True)
+    assert snap["settings"]["location_entity"] == "device_tracker.car"

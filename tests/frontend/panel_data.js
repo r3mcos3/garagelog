@@ -32,7 +32,7 @@ window.mockSnapshot = (entryId = "e1", o = {}) => ({
     tyre_target_bar: 2.5, tyre_threshold_bar: 0.2, wash_soon_days: 30, wash_due_days: 60, apk_days: 30, oil_check_day: 25, service_interval_km: 15000,
     service_interval_days: 365, odometer_entity: "sensor.car_odometer", fuel_level_entity: "sensor.car_fuel", oil_life_entity: "sensor.car_oil",
     tyre_entities: ["sensor.t0", "sensor.t1", "sensor.t2"],
-    tank_capacity_l: 52, notify_off: ["wash", "tyre_ok"], fuel_price_notify_min: 0.02,
+    tank_capacity_l: 52, location_entity: "device_tracker.car", notify_off: ["wash", "tyre_ok"], fuel_price_notify_min: 0.02,
     fuel_stations: [{ name: "Tilburg", entity_id: "sensor.fuel_tb", info_entity_id: "sensor.tb_info" }, { name: "Poppel", entity_id: "sensor.fuel_pp" }, { name: "Ravels", entity_id: "sensor.fuel_rv" }], notify_targets: ["entity:notify.telegram"], apk_date: null, panel_admin_only: false, ...o.settings,
   },
   monthly: [

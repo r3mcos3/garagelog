@@ -6,7 +6,9 @@
     en: {
       title: "Garagelog", loading: "Loading…", no_vehicles: "No vehicles yet. Add one under Settings → Devices & services → Add integration → Garagelog.",
       menu: "Menu", vehicle: "Vehicle",
-      overview: "Overview", refuels: "Fuel", services: "Maintenance", washes: "Washing", tyres: "Tyres", oil: "Oil", costs: "Costs", settings: "Settings",
+      overview: "Overview", refuels: "Fuel", services: "Maintenance", washes: "Washing", tyres: "Tyres", oil: "Oil", location: "Location", costs: "Costs",
+      loc_title: "Last 24 hours", loc_stops: "Stops", loc_none: "Pick the car's device tracker under Settings to see where it is.", loc_empty: "No location data in the last 24 hours.",
+      loc_nomap: "The map could not be loaded (no internet?). The list below still works.", loc_now: "Now", loc_until: "until", s_location: "Location (device tracker)", settings: "Settings",
       warnings: "Needs attention", all_good: "All good, nothing needs attention.",
       w_apk: "APK", w_service: "Service", w_wash: "Washing", w_tyre: "Tyre pressure", w_oil_check: "Check the oil", w_oil_change: "Oil change",
       w_apk_text: (w) => (w.days < 0 ? `The APK expired ${-w.days} days ago.` : `The APK expires in ${w.days} days.`),
@@ -55,7 +57,9 @@
     nl: {
       title: "Garagelog", loading: "Laden…", no_vehicles: "Nog geen voertuigen. Voeg er een toe via Instellingen → Apparaten & diensten → Integratie toevoegen → Garagelog.",
       menu: "Menu", vehicle: "Voertuig",
-      overview: "Overzicht", refuels: "Tanken", services: "Onderhoud", washes: "Wassen", tyres: "Banden", oil: "Olie", costs: "Kosten", settings: "Instellingen",
+      overview: "Overzicht", refuels: "Tanken", services: "Onderhoud", washes: "Wassen", tyres: "Banden", oil: "Olie", location: "Locatie", costs: "Kosten",
+      loc_title: "Laatste 24 uur", loc_stops: "Stops", loc_none: "Kies onder Instellingen de device tracker van de auto om te zien waar hij is.", loc_empty: "Geen locatiegegevens in de afgelopen 24 uur.",
+      loc_nomap: "De kaart kon niet geladen worden (geen internet?). De lijst hieronder werkt wel.", loc_now: "Nu", loc_until: "tot", s_location: "Locatie (device tracker)", settings: "Instellingen",
       warnings: "Aandacht nodig", all_good: "Alles in orde, niets vraagt aandacht.",
       w_apk: "APK", w_service: "Beurt", w_wash: "Wassen", w_tyre: "Bandenspanning", w_oil_check: "Olie peilen", w_oil_change: "Olie verversen",
       w_apk_text: (w) => (w.days < 0 ? `De APK is ${-w.days} dagen geleden verlopen.` : `De APK verloopt over ${w.days} dagen.`),
@@ -121,7 +125,8 @@
 
   const OIL_TYPES = ["oil_change"];
   const SERVICE_TYPES = ["maintenance", "brakes", "apk", "repair", "other"];
-  const TABS = ["overview", "refuels", "fuelprices", "services", "washes", "tyres", "oil", "costs", "settings"];
+  const TABS = ["overview", "refuels", "fuelprices", "services", "washes", "tyres", "oil", "location", "costs", "settings"];
+  const LEAFLET = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4";
 
   /** Field specs of the add/edit forms: [key, kind, step, required] */
   const NOTIFY_KINDS = ["apk", "service", "wash", "tyre", "tyre_ok", "oil_check", "oil_change", "fuel_price", "tyre_log_failed"];
@@ -254,6 +259,7 @@
         button.btn.small { padding: 2px 10px; font-size: 13px; } button.btn.danger { color: var(--error-color, #db4437); }
         .empty { color: var(--secondary-text-color); padding: 12px 0; }
         .sources td:nth-child(2) { font-weight: 500; }
+        .stop { padding: 8px 0; border-bottom: 1px solid var(--divider-color, #ddd); } .stop .l { font-size: 12px; color: var(--secondary-text-color); }
         .stations { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; margin-bottom: 16px; }
         .station { border: 1px solid var(--divider-color, #ddd); border-radius: 12px; padding: 12px; } .station.best { border-color: var(--success-color, #43a047); }
         .station .l { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--secondary-text-color); }
@@ -326,6 +332,7 @@
       if (main) main.scrollTop = keep;
       this._renderModal();
       this._renderToast();
+      if (this._tab === "location") this._afterLocation();
     }
 
     _header() {
@@ -605,11 +612,121 @@
         <div class="card"><h2>${esc(t.fp_history)}</h2>${fp.stations.map((st) => this._historyList(st.name, history[st.entity_id], (n) => this._num(n, 3))).join("")}${g ? this._historyList(t.fp_gap, history.gap, (n) => this._num(n, 3)) : ""}</div>`;
     }
 
+    // ---------------------------------------------------------------- location
+    _tab_location() {
+      const t = this.t, ent = this._snap.settings.location_entity;
+      if (!ent) return `<div class="card"><div class="empty" id="loc-none">${esc(t.loc_none)}</div></div>`;
+      return `<link rel="stylesheet" href="${LEAFLET}/leaflet.min.css">
+        <div class="card"><h2>${esc(t.loc_title)}</h2><div id="locmap" style="height:320px;border-radius:12px;overflow:hidden;background:var(--secondary-background-color,#eee)"></div><div class="hint" id="loc-msg"></div></div>
+        <div class="card"><h2>${esc(t.loc_stops)}</h2><div id="loclist"></div></div>`;
+    }
+
+    async _locHistory(ent) {
+      const end = new Date(), start = new Date(end.getTime() - 24 * 3600 * 1000);
+      const res = await this._hass.connection.sendMessagePromise({
+        type: "history/history_during_period", start_time: start.toISOString(), end_time: end.toISOString(), entity_ids: [ent],
+        include_start_time_state: true, significant_changes_only: false, minimal_response: false, no_attributes: false,
+      });
+      const km = (a, b) => { const r = Math.PI / 180, dx = (b.lon - a.lon) * r * Math.cos((a.lat + b.lat) * r / 2), dy = (b.lat - a.lat) * r; return Math.sqrt(dx * dx + dy * dy) * 6371000; };
+      const stops = [];
+      let attrs = {};
+      for (const row of res[ent] || []) {
+        if (row.a) attrs = row.a;
+        const lat = Number(attrs.latitude), lon = Number(attrs.longitude);
+        const ts = (row.lu ?? row.lc ?? 0) * 1000;
+        if (!Number.isFinite(lat) || !Number.isFinite(lon) || !ts) continue;
+        const last = stops[stops.length - 1];
+        if (last && km(last, { lat, lon }) < 50) { last.until = ts; continue; }
+        stops.push({ lat, lon, from: ts, until: ts });
+      }
+      return stops.reverse(); // newest first
+    }
+
+    async _afterLocation() {
+      const ent = this._snap.settings.location_entity;
+      if (!ent) return;
+      const token = (this._locToken = (this._locToken || 0) + 1);
+      if (!this._loc || this._loc.entity !== ent || Date.now() - this._loc.at > 300000) {
+        try { this._loc = { entity: ent, at: Date.now(), stops: await this._locHistory(ent) }; } catch (e) { this._loc = { entity: ent, at: Date.now(), stops: [] }; }
+      }
+      if (token !== this._locToken || this._tab !== "location") return;
+      this._paintLocation(token);
+    }
+
+    _geoKey(s) { return `${s.lat.toFixed(3)},${s.lon.toFixed(3)}`; }
+    _geoCache() { try { return JSON.parse(this._load("geo") || "{}"); } catch (e) { return {}; } }
+
+    _paintLocation(token) {
+      const t = this.t, sr = this.shadowRoot, stops = this._loc.stops, cache = this._geoCache();
+      const when = (ms) => new Date(ms).toLocaleString(this._hass?.language || "en", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+      const list = sr.getElementById("loclist");
+      if (!list) return;
+      list.innerHTML = stops.length ? stops.map((s, i) => {
+        const k = this._geoKey(s);
+        return `<div class="stop" data-stop="${i}"><div class="l">${i === 0 ? esc(t.loc_now) + " · " : ""}${esc(when(s.from))}${s.until - s.from > 60000 ? ` ${esc(t.loc_until)} ${esc(when(s.until))}` : ""}</div><div data-geo="${k}">${esc(cache[k] || `${s.lat.toFixed(5)}, ${s.lon.toFixed(5)}`)}</div></div>`;
+      }).join("") : `<div class="empty" id="loc-empty">${esc(t.loc_empty)}</div>`;
+      this._mountMap(stops, token);
+      this._geocode(stops, token);
+    }
+
+    _leaflet() {
+      if (window.L && window.L.map) return Promise.resolve(window.L);
+      if (!this._leafletP) {
+        this._leafletP = new Promise((resolve) => {
+          const el = document.createElement("script");
+          el.src = `${LEAFLET}/leaflet.min.js`;
+          el.onload = () => resolve(window.L || null);
+          el.onerror = () => { this._leafletP = null; resolve(null); };
+          document.head.appendChild(el);
+        });
+      }
+      return this._leafletP;
+    }
+
+    async _mountMap(stops, token) {
+      const sr = this.shadowRoot, el = sr.getElementById("locmap"), msg = sr.getElementById("loc-msg");
+      if (!el || !stops.length) return;
+      const L = await this._leaflet();
+      if (token !== this._locToken || !sr.getElementById("locmap")) return;
+      if (!L) { msg.textContent = this.t.loc_nomap; return; }
+      if (this._map) { try { this._map.remove(); } catch (e) { /* already gone */ } }
+      const map = L.map(el);
+      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "&copy; OpenStreetMap" }).addTo(map);
+      const pts = stops.map((s) => [s.lat, s.lon]);
+      if (pts.length > 1) L.polyline([...pts].reverse(), { color: "#e8590c", weight: 3, opacity: 0.8 }).addTo(map);
+      stops.forEach((s, i) => L.circleMarker([s.lat, s.lon], { radius: i === 0 ? 9 : 5, color: "#fff", weight: 2, fillColor: "#e8590c", fillOpacity: 1 }).addTo(map));
+      if (this._mapView) map.setView(this._mapView.c, this._mapView.z);
+      else map.fitBounds(L.latLngBounds(pts), { padding: [24, 24], maxZoom: 16 });
+      map.on("moveend", () => { this._mapView = { c: map.getCenter(), z: map.getZoom() }; });
+      this._map = map;
+    }
+
+    async _geocode(stops, token) {
+      const cache = this._geoCache();
+      let budget = 8;
+      for (const s of stops) {
+        const k = this._geoKey(s);
+        if (cache[k] || budget <= 0) continue;
+        budget -= 1;
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&lat=${s.lat}&lon=${s.lon}&accept-language=${this.lang}`);
+          const a = ((await res.json()) || {}).address || {};
+          const text = [[a.road, a.house_number].filter(Boolean).join(" "), a.city || a.town || a.village || a.municipality].filter(Boolean).join(", ");
+          if (!text) continue;
+          cache[k] = text;
+          this._store("geo", JSON.stringify(cache));
+          if (token !== this._locToken) return;
+          this.shadowRoot.querySelectorAll(`[data-geo="${k}"]`).forEach((n) => { n.textContent = text; });
+        } catch (e) { return; }
+        await new Promise((r) => setTimeout(r, 1100)); // Nominatim allows one request per second
+      }
+    }
+
     // ---------------------------------------------------------------- settings
     _tab_settings() {
       const t = this.t, st = this._snap.settings, dis = this.isAdmin ? "" : "disabled";
       const num = (k, label, val, step = "1") => `<label class="field">${esc(label)}<input type="number" step="${step}" name="${k}" value="${esc(val ?? "")}" ${dis}></label>`;
-      const ents = this._hass ? Object.keys(this._hass.states || {}).filter((e) => /^(sensor|number|input_number)\./.test(e)).sort() : [];
+      const ents = this._hass ? Object.keys(this._hass.states || {}).filter((e) => /^(sensor|number|input_number|device_tracker|person)\./.test(e)).sort() : [];
       // price sensors: only entities that hold a plausible price per litre, labelled with their name
       const states = (this._hass && this._hass.states) || {};
       const prices = ents.filter((e) => { const v = parseFloat(states[e] && states[e].state); return /^(sensor|input_number)\./.test(e) && v >= 0.3 && v <= 10; });
@@ -634,7 +751,7 @@
           <label class="field">${esc(t.s_apk_date)}<input type="text" inputmode="numeric" maxlength="10" data-mask="date" name="apk_date" placeholder="${esc(t.date_ph)}" value="${esc(fmtDate(st.apk_date))}" ${dis}></label>
         </div></div>
         <div class="card"><h2>${esc(t.s_sources)}</h2><div class="settings-grid">
-          ${ent("odometer_entity", t.s_odometer, st.odometer_entity)}${ent("fuel_level_entity", t.s_fuel, st.fuel_level_entity)}${ent("oil_life_entity", t.s_oil_life, st.oil_life_entity)}${tyres}
+          ${ent("odometer_entity", t.s_odometer, st.odometer_entity)}${ent("fuel_level_entity", t.s_fuel, st.fuel_level_entity)}${ent("oil_life_entity", t.s_oil_life, st.oil_life_entity)}${ent("location_entity", t.s_location, st.location_entity)}${tyres}
         </div>${list}</div>
         <div class="card"><h2>${esc(t.s_stations)}</h2><div class="hint">${esc(t.s_stations_hint)}</div>${stationRows}
           <div class="settings-grid">${num("tank_capacity_l", t.s_tank, st.tank_capacity_l, "0.1")}${num("fuel_price_notify_min", t.s_fuel_notify_min, st.fuel_price_notify_min, "0.001")}</div>
@@ -671,7 +788,7 @@
         fuel_stations: fuelStations, tank_capacity_l: num("tank_capacity_l"), fuel_price_notify_min: num("fuel_price_notify_min"), notify_off: NOTIFY_KINDS.filter((k) => f.get("nt_" + k) !== "on"),
         tyre_target_bar: num("tyre_target_bar"), tyre_threshold_bar: num("tyre_threshold_bar"), wash_soon_days: num("wash_soon_days"), wash_due_days: num("wash_due_days"),
         apk_days: num("apk_days"), oil_check_day: num("oil_check_day"), service_interval_km: num("service_interval_km"), service_interval_days: num("service_interval_days"),
-        apk_date: apk, odometer_entity: str("odometer_entity"), fuel_level_entity: str("fuel_level_entity"), oil_life_entity: str("oil_life_entity"),
+        apk_date: apk, odometer_entity: str("odometer_entity"), fuel_level_entity: str("fuel_level_entity"), oil_life_entity: str("oil_life_entity"), location_entity: str("location_entity"),
         tyre_entities: [0, 1, 2, 3].map((i) => str(`tyre_${i}`)).filter(Boolean), notify_targets: f.getAll("target"), panel_admin_only: f.get("panel_admin_only") === "on",
       };
       try {

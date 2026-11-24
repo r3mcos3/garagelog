@@ -15,12 +15,33 @@
           sent.push(msg);
           if (msg.type === "garagelog/vehicles") return [{ entry_id: "e1", title: "Ford Kuga (AB123C)", plate: "AB123C" }, { entry_id: "e2", title: "Fiat Panda (XX11XX)", plate: "XX11XX" }];
           if (msg.type === "garagelog/notify_targets") return [{ value: "entity:notify.telegram", label: "Telegram · Bot", telegram: true }, { value: "service:mobile_app_phone", label: "notify.mobile_app_phone" }];
+          if (msg.type === "history/history_during_period") {
+            const now = Date.now() / 1000;
+            return { "device_tracker.car": [
+              { s: "home", a: { latitude: 51.5600, longitude: 5.0900 }, lu: now - 20000 },
+              { s: "home", lu: now - 19000 },
+              { s: "not_home", a: { latitude: 51.5700, longitude: 5.1000 }, lu: now - 10000 },
+              { s: "not_home", a: { latitude: 51.5900, longitude: 5.1200 }, lu: now - 100 },
+            ] };
+          }
           if (msg.type === "garagelog/record_add" && msg.data.liters === 999) throw { code: "invalid_format", message: "liters too large" };
           return { ok: true };
         },
         subscribeMessage: async (cb, msg) => { sent.push(msg); push[msg.entry_id] = cb; return () => { unsubs.push(msg.entry_id); }; },
       },
     };
+    const mapCalls = { markers: 0, lines: 0, views: 0 };
+    window.L = {
+      map: () => { const m = { on() { return m; }, remove() {} }; return m; },
+      tileLayer: () => ({ addTo() {} }),
+      polyline: () => { mapCalls.lines += 1; return { addTo() {} }; },
+      circleMarker: () => { mapCalls.markers += 1; return { addTo() {} }; },
+      latLngBounds: (p) => p,
+    };
+    const realMap = window.L.map;
+    window.L.map = (el) => { const m = realMap(el); m.fitBounds = () => { mapCalls.views += 1; }; m.setView = () => { mapCalls.views += 1; }; return m; };
+    const geoUrls = [];
+    window.fetch = async (url) => { geoUrls.push(String(url)); return { json: async () => ({ address: { road: "Baroniebaan", house_number: "2", city: "Tilburg" } }) }; };
     const panel = document.createElement("garagelog-panel");
     document.body.appendChild(panel);
     panel.narrow = false;
@@ -38,7 +59,7 @@
 
     // header + tabs
     R.vehicle_select = $$("#vehicle option").length === 2 && $("#vehicle").value === "e1";
-    R.tabs = $$(".tabs button").map((b) => b.textContent).join(",") === "Overview,Fuel,Fuel prices,Maintenance,Washing,Tyres,Oil,Costs,Settings";
+    R.tabs = $$(".tabs button").map((b) => b.textContent).join(",") === "Overview,Fuel,Fuel prices,Maintenance,Washing,Tyres,Oil,Location,Costs,Settings";
     R.no_menu_on_desktop = !$("#menu");
 
     // overview
@@ -165,6 +186,14 @@
     R.fp_history_info = $('details.hist[data-hist="Tilburg"] .info').textContent.includes("Shell Baroniebaan");
     R.fp_history = $$("details.hist").length === 4 && $('details.hist[data-hist="Tilburg"]').textContent.includes("Tilburg (3)") && $('details.hist[data-hist="Tilburg"] .badge.down') !== null;
 
+    // location
+    await goTab("location");
+    await tick(30);
+    R.loc_stops = $$("#loclist .stop").length === 3 && $("#loclist .stop").textContent.includes("Now");
+    R.loc_map = mapCalls.markers === 3 && mapCalls.lines === 1 && mapCalls.views >= 1;
+    await tick(1500);
+    R.loc_address = geoUrls.length >= 1 && geoUrls[0].includes("nominatim") && $('[data-geo]').textContent.includes("Baroniebaan 2, Tilburg");
+
     // settings
     await goTab("settings");
     await tick(10);
@@ -180,6 +209,7 @@
     R.settings_invalid_date = $("#settings-err").textContent.includes("dd-mm-yyyy");
     sf().elements.apk_date.value = "20-01-2027";
     R.fuel_notify_form = sf().elements.nt_fuel_price.checked && !sf().elements.nt_wash.checked && !sf().elements.nt_tyre_ok.checked && sf().elements.nt_apk.checked && sf().elements.fuel_price_notify_min.value === "0.02";
+    R.loc_setting = sf().elements.location_entity.value === "device_tracker.car";
     R.fp_station_form = sf().elements.fs_name_0.value === "Tilburg" && sf().elements.fs_entity_2.value === "sensor.fuel_rv" && sf().elements.fs_info_0.value === "sensor.tb_info" && sf().elements.fs_name_3.value === "" && sf().elements.tank_capacity_l.value === "52";
     sf().elements.fs_name_5.value = "Orphan"; sf().requestSubmit(); await tick(5);
     R.fp_station_err = $("#settings-err").textContent.includes("name and a sensor");
@@ -192,7 +222,7 @@
     R.settings_sent = !!ss && ss.settings.tyre_target_bar === 2.4 && ss.settings.apk_date === "2027-01-20" && ss.settings.odometer_entity === null &&
       JSON.stringify(ss.settings.tyre_entities) === JSON.stringify(["sensor.t0", "sensor.t1", "sensor.t2", "sensor.t3"]) &&
       JSON.stringify(ss.settings.notify_targets) === JSON.stringify(["entity:notify.telegram", "service:mobile_app_phone"]) && ss.settings.panel_admin_only === false && ss.entry_id === "e1" &&
-      ss.settings.fuel_stations.length === 3 && ss.settings.fuel_stations[1].entity_id === "sensor.fuel_pp" && ss.settings.fuel_stations[0].info_entity_id === "sensor.tb_info" && !("info_entity_id" in ss.settings.fuel_stations[1]) && ss.settings.tank_capacity_l === 52 && ss.settings.notify_off.join() === "wash,tyre_ok" && ss.settings.fuel_price_notify_min === 0.02;
+      ss.settings.fuel_stations.length === 3 && ss.settings.fuel_stations[1].entity_id === "sensor.fuel_pp" && ss.settings.fuel_stations[0].info_entity_id === "sensor.tb_info" && !("info_entity_id" in ss.settings.fuel_stations[1]) && ss.settings.tank_capacity_l === 52 && ss.settings.notify_off.join() === "wash,tyre_ok" && ss.settings.location_entity === "device_tracker.car" && ss.settings.fuel_price_notify_min === 0.02;
     // unsaved edits survive a pushed snapshot
     sf().elements.wash_soon_days.value = "21";
     sf().elements.wash_soon_days.dispatchEvent(new Event("input", { bubbles: true }));
@@ -230,7 +260,7 @@
     // Dutch
     hass.language = "nl"; panel.hass = hass; hass.language = "nl";
     panel._render(); await tick(5);
-    R.dutch_tabs = $$(".tabs button").map((b) => b.textContent).join(",") === "Overzicht,Tanken,Brandstofprijzen,Onderhoud,Wassen,Banden,Olie,Kosten,Instellingen";
+    R.dutch_tabs = $$(".tabs button").map((b) => b.textContent).join(",") === "Overzicht,Tanken,Brandstofprijzen,Onderhoud,Wassen,Banden,Olie,Locatie,Kosten,Instellingen";
     R.dutch_overview = $(".card h2").textContent === "Aandacht nodig" && $('[data-w="apk"]').textContent.includes("27 dagen");
 
     // non-admin cannot save settings

@@ -26,6 +26,7 @@ from .const import (
     CONF_APK_DATE,
     CONF_APK_DAYS,
     CONF_FUEL_LEVEL_ENTITY,
+    CONF_LOCATION_ENTITY,
     CONF_NAME,
     CONF_NOTIFY_TARGETS,
     CONF_ODOMETER_ENTITY,
@@ -71,6 +72,7 @@ def _sources_schema(current: dict[str, Any]) -> dict[Any, Any]:
             EntitySelectorConfig(domain=["sensor", "input_number", "number"], multiple=True)
         ),
         key(CONF_OIL_LIFE_ENTITY): sensor,
+        key(CONF_LOCATION_ENTITY): EntitySelector(EntitySelectorConfig(domain=["device_tracker", "person"])),
     }
 
 

@@ -21,6 +21,7 @@ CONF_FUEL_STATIONS = "fuel_stations"
 CONF_TANK_CAPACITY = "tank_capacity_l"
 CONF_TYRE_ENTITIES = "tyre_entities"
 CONF_OIL_LIFE_ENTITY = "oil_life_entity"
+CONF_LOCATION_ENTITY = "location_entity"
 
 # options
 CONF_NOTIFY_TARGETS = "notify_targets"
