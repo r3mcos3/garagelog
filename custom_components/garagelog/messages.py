@@ -5,6 +5,12 @@ from __future__ import annotations
 from typing import Any
 
 
+def _date(value: Any) -> str:
+    """dd-mm-yyyy for an ISO date (anything else is returned as it is)."""
+    text = str(value)
+    return f"{text[8:10]}-{text[5:7]}-{text[:4]}" if len(text) >= 10 and text[4] == "-" and text[7] == "-" else text
+
+
 def _km(value: Any) -> str:
     return f"{value:,.0f}".replace(",", ".") if value is not None else "?"
 
@@ -14,8 +20,8 @@ def message(language: str, kind: str, d: dict[str, Any]) -> tuple[str, str]:
     name = d["vehicle"]
     if kind == "apk":
         if nl:
-            return f"APK {name}", f"De APK van {name} verloopt op {d['apk_date']} (over {d['days']} dagen)."
-        return f"MOT/APK {name}", f"The APK of {name} expires on {d['apk_date']} (in {d['days']} days)."
+            return f"APK {name}", f"De APK van {name} verloopt op {_date(d['apk_date'])} (over {d['days']} dagen)."
+        return f"MOT/APK {name}", f"The APK of {name} expires on {_date(d['apk_date'])} (in {d['days']} days)."
     if kind == "service":
         parts = []
         if d.get("days") is not None:
@@ -49,7 +55,7 @@ def message(language: str, kind: str, d: dict[str, Any]) -> tuple[str, str]:
             else (f"Check oil {name}", f"Time to check the oil level of {name}.")
         )
     if kind == "oil_change":
-        extra = f" (ca. {_km(d['km'])} km, {d['date']})" if d.get("km") is not None else f" ({d['date']})"
+        extra = f" (ca. {_km(d['km'])} km, {_date(d['date'])})" if d.get("km") is not None else f" ({_date(d['date'])})"
         return (
             (f"Olie verversen {name}", f"Geschatte olieverversing nadert{extra}.")
             if nl

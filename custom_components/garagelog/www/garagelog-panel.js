@@ -750,7 +750,8 @@
 
     _paintLocation(token) {
       const t = this.t, sr = this.shadowRoot, stops = this._loc.stops, cache = this._geoCache();
-      const when = (ms) => new Date(ms).toLocaleString(this._hass?.language || "en", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+      const p2 = (n) => String(n).padStart(2, "0");
+      const when = (ms) => { const d = new Date(ms); return `${p2(d.getDate())}-${p2(d.getMonth() + 1)}-${d.getFullYear()} ${p2(d.getHours())}:${p2(d.getMinutes())}`; }; // always dd-mm-yyyy and a 24-hour clock
       const list = sr.getElementById("loclist");
       if (!list) return;
       list.innerHTML = stops.length ? stops.map((s, i) => {

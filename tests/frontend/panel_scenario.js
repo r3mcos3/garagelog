@@ -202,6 +202,7 @@
     // location
     await goTab("location");
     await tick(30);
+    R.loc_clock = /\d{2}-\d{2}-\d{4} \d{2}:\d{2}/.test($("#loclist .stop .l").textContent) && !/[AP]M/i.test($("#loclist").textContent);
     R.loc_stops = $$("#loclist .stop").length === 3 && $("#loclist .stop").textContent.includes("Now");
     R.loc_map = mapCalls.markers === 3 && mapCalls.lines === 1 && mapCalls.views >= 1;
     await tick(1500);
