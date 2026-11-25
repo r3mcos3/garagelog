@@ -92,22 +92,22 @@ def test_tyres():
     assert calc.tyre_deviation({}, 2.5) is None
 
 
-def test_oil_check_day():
-    # 25 Nov 2026 is a Wednesday -> Saturday the 28th
-    assert calc.oil_check_day(2026, 11, 25) == date(2026, 11, 28)
-    # 25 Jul 2026 is a Saturday
-    assert calc.oil_check_day(2026, 7, 25) == date(2026, 7, 25)
-    # Feb 2027: 25th is Thursday, 27/28 are weekend
-    assert calc.oil_check_day(2027, 2, 25) == date(2027, 2, 27)
-    # a month where from_day 31 has no weekend (e.g. Mar 2027: 31st is Wednesday) -> last day
-    assert calc.oil_check_day(2027, 3, 31) == date(2027, 3, 31)
+def test_oil_check_due_date_is_first_weekend_a_month_after_the_last_check():
+    assert calc.oil_check_due_date([]) is None
+    assert calc.oil_check_due_date([{"date": "2026-10-25"}]) == date(2026, 11, 28)  # Wed 25 Nov -> Sat
+    assert calc.oil_check_due_date([{"date": "2026-06-27"}, {"date": "2026-07-25"}]) == date(2026, 8, 29)  # Tue 25 Aug -> Sat
+    assert calc.oil_check_due_date([{"date": "2026-12-31"}]) == date(2027, 1, 31)  # a Sunday
+    assert calc.oil_check_due_date([{"date": "2027-01-31"}]) == date(2027, 2, 28)  # clamped, a Sunday
 
 
 def test_oil_check_due():
-    assert not calc.oil_check_due(date(2026, 11, 27), 25, [])
-    assert calc.oil_check_due(date(2026, 11, 28), 25, [])
-    assert calc.oil_check_due(date(2026, 11, 30), 25, [{"date": "2026-10-28"}])
-    assert not calc.oil_check_due(date(2026, 11, 30), 25, [{"date": "2026-11-28"}])
+    last = [{"date": "2026-10-25"}]
+    assert not calc.oil_check_due(date(2026, 11, 27), last)
+    assert calc.oil_check_due(date(2026, 11, 28), last)
+    assert calc.oil_check_due(date(2026, 12, 15), last)
+    assert not calc.oil_check_due(date(2026, 12, 15), [*last, {"date": "2026-11-28"}])
+    assert not calc.oil_check_due(date(2026, 11, 1), [])
+
 
 
 def test_oil_estimate():

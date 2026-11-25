@@ -16,7 +16,7 @@ and oil, in one standalone integration. No cloud account, no app, no server: eve
 - **APK reminder** 30 days ahead, once per APK date.
 - **Washing:** days since the last wash; reminders at 30 and 60 days.
 - **Tyres:** deviation from the target pressure; one message per pressure dip (>= 0.2 bar by default).
-- **Oil:** check reminder on the first weekend day on/after the 25th; estimated oil change from the oil-life percentage (labelled as an estimate).
+- **Oil:** check reminder on the first Saturday/Sunday on or after one month after the last logged oil check; estimated oil change from the oil-life percentage (labelled as an estimate).
 - **Costs:** total, this year, this month, average per month.
 - **Reminders** are events (`garagelog_apk_due`, `garagelog_service_due`, `garagelog_wash_due`, `garagelog_tyre_pressure`,
   `garagelog_oil_check_due`, `garagelog_oil_change_due`) and messages to the notify targets you choose (Telegram, phone, ...).

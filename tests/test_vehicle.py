@@ -263,9 +263,13 @@ async def test_tyre_pressures_from_attributes_of_one_sensor(
     assert float(val(hass, mock_entry, "tyre_deviation")) == pytest.approx(0.08, abs=0.001)
 
 
-async def test_oil_check_weekend_after_25th_once_per_month(hass, mock_entry, notified, freezer):
+async def test_oil_check_first_weekend_a_month_after_the_last_check_once(hass, mock_entry, notified, freezer):
     events = async_capture_events(hass, "garagelog_oil_check_due")
-    await setup(hass, mock_entry, freezer, "2026-11-27 10:00:00+01:00")  # Friday
+    await setup(hass, mock_entry, freezer, "2026-10-25 10:00:00+01:00")  # Sunday
+    await call(hass, mock_entry, "log_oil_check", level="ok")  # last check 25 Oct, so due Saturday 28 Nov
+    freezer.move_to("2026-11-27 10:00:00+01:00")  # Friday
+    mock_entry.runtime_data.async_refresh()
+    await mock_entry.runtime_data.async_check()
     assert val(hass, mock_entry, "oil_check_due") == "off" and not events
     freezer.move_to("2026-11-28 10:00:00+01:00")  # Saturday
     mock_entry.runtime_data.async_refresh()
@@ -275,10 +279,14 @@ async def test_oil_check_weekend_after_25th_once_per_month(hass, mock_entry, not
     assert len(events) == 1
     await call(hass, mock_entry, "log_oil_check", level="ok")
     assert val(hass, mock_entry, "oil_check_due") == "off"
-    freezer.move_to("2026-12-26 10:00:00+01:00")  # next month, Saturday
+    freezer.move_to("2026-12-26 10:00:00+01:00")  # a month after 28 Nov: first weekend is Sat 2027-01-02
     mock_entry.runtime_data.async_refresh()
     await mock_entry.runtime_data.async_check()
-    assert len(events) == 2
+    assert val(hass, mock_entry, "oil_check_due") == "off" and len(events) == 1
+    freezer.move_to("2027-01-02 10:00:00+01:00")
+    mock_entry.runtime_data.async_refresh()
+    await mock_entry.runtime_data.async_check()
+    assert val(hass, mock_entry, "oil_check_due") == "on" and len(events) == 2
 
 
 async def test_oil_estimate_from_oil_life(hass, mock_entry, with_sources, notified, freezer):

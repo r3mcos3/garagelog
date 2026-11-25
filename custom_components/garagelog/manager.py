@@ -25,7 +25,6 @@ from .const import (
     CONF_NOTIFY_OFF,
     CONF_NOTIFY_TARGETS,
     CONF_ODOMETER_ENTITY,
-    CONF_OIL_CHECK_DAY,
     CONF_OIL_LIFE_ENTITY,
     CONF_PLATE,
     CONF_SERVICE_INTERVAL_DAYS,
@@ -37,7 +36,6 @@ from .const import (
     CONF_WASH_DUE_DAYS,
     CONF_WASH_SOON_DAYS,
     DEFAULT_APK_DAYS,
-    DEFAULT_OIL_CHECK_DAY,
     DEFAULT_SERVICE_INTERVAL_DAYS,
     DEFAULT_SERVICE_INTERVAL_KM,
     DEFAULT_TANK_LITERS,
@@ -447,7 +445,7 @@ class VehicleManager:
             "tyre_deviation": deviation,
             "tyre_low": deviation is not None and deviation >= threshold,
             "oil_check_due": calc.oil_check_due(
-                today, self.opt(CONF_OIL_CHECK_DAY, DEFAULT_OIL_CHECK_DAY), checks
+                today, checks
             ),
             "oil_life": self.oil_life(),
             "oil_estimate": estimate,
@@ -598,11 +596,12 @@ class VehicleManager:
                     {"status": status, "days": view["days_since_wash"]},
                 )
 
-        month = dt_util.now().strftime("%Y-%m")
-        if view["oil_check_due"] and notified.get("oil_check") != month:
-            notified["oil_check"] = month
+        due_date = calc.oil_check_due_date(self.store.records(OIL_CHECKS))
+        cycle = due_date.isoformat() if due_date else ""  # one notification per check cycle
+        if view["oil_check_due"] and notified.get("oil_check") != cycle:
+            notified["oil_check"] = cycle
             changed = True
-            await self._async_notify(EVENT_OIL_CHECK_DUE, "oil_check", {"month": month})
+            await self._async_notify(EVENT_OIL_CHECK_DUE, "oil_check", {"due_date": cycle})
 
         est = view["oil_estimate"]
         if est:

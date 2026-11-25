@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import calendar
 from collections.abc import Iterable
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from typing import Any
 
 from .const import (
@@ -209,23 +209,27 @@ def tyre_deviation(pressures_bar: dict[str, float], target: float) -> float | No
 # --------------------------------------------------------------------------- oil
 
 
-def oil_check_day(year: int, month: int, from_day: int) -> date:
-    """First Saturday/Sunday on or after ``from_day``; the last day of the month if there is none."""
-    last = calendar.monthrange(year, month)[1]
-    for day in range(min(from_day, last), last + 1):
-        if date(year, month, day).weekday() >= 5:
-            return date(year, month, day)
-    return date(year, month, last)
+def add_month(day: date) -> date:
+    """The same day one month later (clamped to the length of that month)."""
+    year, month = (day.year + 1, 1) if day.month == 12 else (day.year, day.month + 1)
+    return date(year, month, min(day.day, calendar.monthrange(year, month)[1]))
 
 
-def oil_check_due(today: date, from_day: int, checks: list[Record]) -> bool:
-    """Due from the check day of this month until an oil check is logged in the same month."""
-    if today < oil_check_day(today.year, today.month, from_day):
-        return False
-    return not any(
-        (d := parse_date(c.get("date"))) and (d.year, d.month) == (today.year, today.month)
-        for c in checks
-    )
+def oil_check_due_date(checks: list[Record]) -> date | None:
+    """First Saturday/Sunday on or after one month after the last oil check (None without any check)."""
+    dates = [d for c in checks if (d := parse_date(c.get("date")))]
+    if not dates:
+        return None
+    day = add_month(max(dates))
+    while day.weekday() < 5:
+        day += timedelta(days=1)
+    return day
+
+
+def oil_check_due(today: date, checks: list[Record]) -> bool:
+    """Due from the first weekend that is a month after the last oil check (never without a logged check)."""
+    due = oil_check_due_date(checks)
+    return due is not None and today >= due
 
 
 def oil_estimate(

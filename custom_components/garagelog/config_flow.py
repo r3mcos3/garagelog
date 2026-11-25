@@ -30,7 +30,6 @@ from .const import (
     CONF_NAME,
     CONF_NOTIFY_TARGETS,
     CONF_ODOMETER_ENTITY,
-    CONF_OIL_CHECK_DAY,
     CONF_OIL_LIFE_ENTITY,
     CONF_PANEL_ADMIN,
     CONF_PLATE,
@@ -43,7 +42,6 @@ from .const import (
     CONF_WASH_DUE_DAYS,
     CONF_WASH_SOON_DAYS,
     DEFAULT_APK_DAYS,
-    DEFAULT_OIL_CHECK_DAY,
     DEFAULT_SERVICE_INTERVAL_DAYS,
     DEFAULT_SERVICE_INTERVAL_KM,
     DEFAULT_TYRE_TARGET,
@@ -179,7 +177,6 @@ class GaragelogOptionsFlow(OptionsFlow):
         schema.update(opt(CONF_WASH_SOON_DAYS, DEFAULT_WASH_SOON_DAYS, _number(1, 365, 1, "d")))
         schema.update(opt(CONF_WASH_DUE_DAYS, DEFAULT_WASH_DUE_DAYS, _number(1, 365, 1, "d")))
         schema.update(opt(CONF_APK_DAYS, DEFAULT_APK_DAYS, _number(1, 120, 1, "d")))
-        schema.update(opt(CONF_OIL_CHECK_DAY, DEFAULT_OIL_CHECK_DAY, _number(1, 31, 1)))
         schema.update(opt(CONF_SERVICE_INTERVAL_KM, DEFAULT_SERVICE_INTERVAL_KM, _number(1000, 100000, 500, "km")))
         schema.update(opt(CONF_SERVICE_INTERVAL_DAYS, DEFAULT_SERVICE_INTERVAL_DAYS, _number(30, 1500, 1, "d")))
         schema[vol.Optional(CONF_PANEL_ADMIN, default=bool(entry.options.get(CONF_PANEL_ADMIN)))] = bool
@@ -193,7 +190,7 @@ def _clean_sources_and_options(user_input: dict[str, Any]) -> dict[str, Any]:
     out = {k: v for k, v in user_input.items() if v not in (None, "", [])}
     if CONF_PANEL_ADMIN in user_input:
         out[CONF_PANEL_ADMIN] = bool(user_input[CONF_PANEL_ADMIN])
-    for key in (CONF_WASH_SOON_DAYS, CONF_WASH_DUE_DAYS, CONF_APK_DAYS, CONF_OIL_CHECK_DAY,
+    for key in (CONF_WASH_SOON_DAYS, CONF_WASH_DUE_DAYS, CONF_APK_DAYS,
                 CONF_SERVICE_INTERVAL_KM, CONF_SERVICE_INTERVAL_DAYS):
         if key in out:
             out[key] = int(out[key])

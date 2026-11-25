@@ -840,7 +840,7 @@
         <div class="card"><h2>${esc(t.s_thresholds)}</h2><div class="settings-grid">
           ${num("tyre_target_bar", t.s_tyre_target, st.tyre_target_bar, "0.05")}${num("tyre_threshold_bar", t.s_tyre_threshold, st.tyre_threshold_bar, "0.05")}
           ${num("wash_soon_days", t.s_wash_soon, st.wash_soon_days)}${num("wash_due_days", t.s_wash_due, st.wash_due_days)}
-          ${num("apk_days", t.s_apk_days, st.apk_days)}${num("oil_check_day", t.s_oil_day, st.oil_check_day)}
+          ${num("apk_days", t.s_apk_days, st.apk_days)}
           ${num("service_interval_km", t.s_int_km, st.service_interval_km, "500")}${num("service_interval_days", t.s_int_days, st.service_interval_days)}
           <label class="field">${esc(t.s_apk_date)}<input type="text" inputmode="numeric" maxlength="10" data-mask="date" name="apk_date" placeholder="${esc(t.date_ph)}" value="${esc(fmtDate(st.apk_date))}" ${dis}></label>
         </div></div>
@@ -881,7 +881,7 @@
       const settings = {
         fuel_stations: fuelStations, tank_capacity_l: num("tank_capacity_l"), fuel_price_notify_min: num("fuel_price_notify_min"), notify_off: NOTIFY_KINDS.filter((k) => f.get("nt_" + k) !== "on"),
         tyre_target_bar: num("tyre_target_bar"), tyre_threshold_bar: num("tyre_threshold_bar"), wash_soon_days: num("wash_soon_days"), wash_due_days: num("wash_due_days"),
-        apk_days: num("apk_days"), oil_check_day: num("oil_check_day"), service_interval_km: num("service_interval_km"), service_interval_days: num("service_interval_days"),
+        apk_days: num("apk_days"), service_interval_km: num("service_interval_km"), service_interval_days: num("service_interval_days"),
         apk_date: apk, odometer_entity: str("odometer_entity"), fuel_level_entity: str("fuel_level_entity"), oil_life_entity: str("oil_life_entity"), location_entity: str("location_entity"),
         tyre_entities: [0, 1, 2, 3].map((i) => str(`tyre_${i}`)).filter(Boolean), notify_targets: f.getAll("target"), panel_admin_only: f.get("panel_admin_only") === "on",
       };

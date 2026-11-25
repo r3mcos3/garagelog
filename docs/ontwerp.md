@@ -66,8 +66,8 @@ naar de gekozen doelen. Idempotentie via `state.notified`.
 - **Wassen**: >=30 dagen `soon`, >=60 dagen `due`; één melding per drempel per laatste wasdatum.
 - **Banden**: bron in bar (kPa en psi worden omgerekend); afwijking = max |druk - doel|; melding bij >= drempel, daarna pas weer na
   terugkeer onder drempel - 0,05 bar (hysterese): één melding per dip.
-- **Olie peilen**: aan de beurt vanaf de eerste zaterdag/zondag op of na de 25e (geen weekend in die maand -> laatste dag), tot er
-  die maand een peilbeurt is gelogd; één melding per maand.
+- **Olie peilen**: aan de beurt vanaf de eerste zaterdag/zondag op of na één maand na de laatst gelogde peilbeurt (zonder gelogde
+  peilbeurt nooit); één melding per cyclus, tot er een nieuwe peilbeurt is gelogd.
 - **Olieverversing**: lineaire extrapolatie van olieleven-% over km en tijd sinds de laatste `oil_change`; minimaal 100 km en 3
   procentpunt daling nodig; anders `unknown`. Altijd gelabeld als schatting; melding bij <= 1000 km of 30 dagen (eenmalig per schatting).
 - **APK**: vervaldatum uit RDW (dagelijks vernieuwen, plus `refresh_rdw`); melding 30 dagen vooraf, eenmalig per APK-datum.
