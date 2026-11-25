@@ -784,7 +784,7 @@
       if (!L) { msg.textContent = this.t.loc_nomap; return; }
       if (this._map) { try { this._map.remove(); } catch (e) { /* already gone */ } }
       const map = L.map(el);
-      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "&copy; OpenStreetMap" }).addTo(map);
+      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, referrerPolicy: "strict-origin-when-cross-origin",  attribution: "&copy; OpenStreetMap" }).addTo(map);
       const pts = stops.map((s) => [s.lat, s.lon]);
       if (pts.length > 1) L.polyline([...pts].reverse(), { color: "#e8590c", weight: 3, opacity: 0.8 }).addTo(map);
       stops.forEach((s, i) => L.circleMarker([s.lat, s.lon], { radius: i === 0 ? 9 : 5, color: "#fff", weight: 2, fillColor: "#e8590c", fillOpacity: 1 }).addTo(map));
