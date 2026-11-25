@@ -131,6 +131,7 @@
 
   const OIL_TYPES = ["oil_change"];
   const SERVICE_TYPES = ["maintenance", "brakes", "apk", "repair", "other"];
+  const TAB_ICONS = { overview: "view-dashboard", refuels: "gas-station", fuelprices: "chart-line", services: "wrench", washes: "car-wash", tyres: "tire", oil: "oil", location: "map-marker", costs: "cash-multiple", report: "file-chart", settings: "cog" };
   const TABS = ["overview", "refuels", "fuelprices", "services", "washes", "tyres", "oil", "location", "costs", "report", "settings"];
   const LEAFLET = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4";
 
@@ -237,10 +238,14 @@
         header select { font: inherit; max-width: 55%; padding: 4px 8px; border-radius: 6px; border: 0; background: rgba(255,255,255,.2); color: inherit; }
         header select option { color: #000; }
         #menu { background: none; border: 0; color: inherit; font-size: 24px; width: 40px; height: 40px; cursor: pointer; border-radius: 50%; }
-        .tabs { display: flex; overflow-x: auto; background: var(--card-background-color, #fff); border-bottom: 1px solid var(--divider-color, #ddd); flex: none; scrollbar-width: none; }
-        .tabs::-webkit-scrollbar { display: none; }
-        .tabs button { flex: none; font: inherit; border: 0; background: none; color: var(--secondary-text-color); padding: 14px 16px; cursor: pointer; border-bottom: 3px solid transparent; white-space: nowrap; }
-        .tabs button.active { color: var(--primary-color, #03a9f4); border-bottom-color: var(--primary-color, #03a9f4); font-weight: 500; }
+        .body { display: flex; flex: 1; min-height: 0; }
+        .tabs { display: flex; flex-direction: column; gap: 2px; width: 228px; flex: none; overflow-y: auto; padding: 12px 10px; background: var(--card-background-color, #fff); border-right: 1px solid var(--divider-color, #ddd); }
+        .tabs button { display: flex; align-items: center; gap: 14px; font: inherit; font-size: 14px; text-align: left; border: 0; background: none; color: var(--primary-text-color); padding: 11px 14px; cursor: pointer; border-radius: 10px; white-space: nowrap; transition: background .15s; }
+        .tabs button ha-icon { --mdc-icon-size: 22px; color: var(--secondary-text-color); flex: none; }
+        .tabs button:hover { background: rgba(127,127,127,.12); }
+        .tabs button.active { background: color-mix(in srgb, var(--primary-color, #03a9f4) 16%, transparent); color: var(--primary-color, #03a9f4); font-weight: 500; }
+        .tabs button.active ha-icon { color: var(--primary-color, #03a9f4); }
+        .tabs button.last { margin-top: auto; }
         main { flex: 1; overflow-y: auto; padding: 16px; }
         .wrap { max-width: 1100px; margin: 0 auto; }
         .card { background: var(--card-background-color, #fff); border-radius: 12px; box-shadow: var(--ha-card-box-shadow, 0 1px 3px rgba(0,0,0,.15)); padding: 16px; margin-bottom: 16px; }
@@ -309,7 +314,8 @@
         .hint { font-size: 13px; color: var(--secondary-text-color); margin-top: 8px; }
         .narrow header { padding: 0 4px; } .narrow main { padding: 10px; }
         .narrow .grid { grid-template-columns: repeat(2, 1fr); }
-        .narrow .tabs button { padding: 12px 12px; }
+        .narrow .body { flex-direction: column; } .narrow .tabs { flex-direction: row; width: auto; overflow-x: auto; overflow-y: hidden; gap: 0; padding: 4px 6px; border-right: 0; border-bottom: 1px solid var(--divider-color, #ddd); scrollbar-width: none; } .narrow .tabs::-webkit-scrollbar { display: none; }
+        .narrow .tabs button { flex: none; flex-direction: column; gap: 2px; padding: 6px 12px; font-size: 11px; border-radius: 8px; } .narrow .tabs button.last { margin-top: 0; } .narrow .tabs button ha-icon { --mdc-icon-size: 22px; }
       </style>`;
     }
 
@@ -336,10 +342,10 @@
       if (this._vehicles === null || (this._entryId && !this._snap)) return msg(t.loading);
       if (!this._entryId) return msg(t.no_vehicles);
       if (this._tab === "settings" && this._dirty && sr.getElementById("settings-form")) return; // keep unsaved edits
-      const tabs = TABS.map((k) => `<button data-tab="${k}" class="${this._tab === k ? "active" : ""}">${esc(t[k])}</button>`).join("");
+      const tabs = TABS.map((k) => `<button data-tab="${k}" class="${this._tab === k ? "active" : ""}${k === "settings" ? " last" : ""}"><ha-icon icon="mdi:${TAB_ICONS[k]}"></ha-icon><span>${esc(t[k])}</span></button>`).join("");
       const body = this[`_tab_${this._tab}`]?.() ?? "";
       const keep = sr.querySelector("main")?.scrollTop || 0;
-      page.innerHTML = `${head}<nav class="tabs">${tabs}</nav><main><div class="wrap">${body}</div></main>`;
+      page.innerHTML = `${head}<div class="body"><nav class="tabs">${tabs}</nav><main><div class="wrap">${body}</div></main></div>`;
       const main = sr.querySelector("main");
       if (main) main.scrollTop = keep;
       this._renderModal();
