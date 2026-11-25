@@ -307,6 +307,7 @@ class VehicleManager:
                         "priciest": priciest[0],
                         "gap": round(priciest[1] - cheapest[1], 3),
                         "summary": summary,
+                        "prices": now_prices,
                     },
                 )
             )

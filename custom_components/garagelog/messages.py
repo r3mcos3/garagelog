@@ -62,25 +62,33 @@ def message(language: str, kind: str, d: dict[str, Any]) -> tuple[str, str]:
             else (f"Oil change {name}", f"Estimated oil change is approaching{extra}.")
         )
     if kind == "fuel_price":
-        arrow = "▲" if d["delta"] > 0 else "▼"
-        verb = ("gestegen" if d["delta"] > 0 else "gedaald") if nl else ("up" if d["delta"] > 0 else "down")
-        who = d["station"] + (f" ({d['info']})" if d.get("info") else "")
-        delta = f"{d['delta']:+.3f}"
-        if nl:
-            text = f"De prijs bij {who} is {verb} naar €{d['price']:.3f} ({delta})."
-            if d.get("cheapest") and d["gap"]:
-                text += f" {d['cheapest']} is nu het goedkoopst, €{d['gap']:.3f} minder dan {d['priciest']}"
-            elif d.get("cheapest"):
-                text += " Alle prijzen zijn nu gelijk"
-            text += f" ({d['summary']})." if d.get("summary") else "."
-            return f"⛽{arrow} Benzineprijs {verb} — {d['station']}", text
-        text = f"The price at {who} went {verb} to €{d['price']:.3f} ({delta})."
-        if d.get("cheapest") and d["gap"]:
-            text += f" {d['cheapest']} is now the cheapest, €{d['gap']:.3f} below {d['priciest']}"
-        elif d.get("cheapest"):
-            text += " All prices are now equal"
-        text += f" ({d['summary']})." if d.get("summary") else "."
-        return f"⛽{arrow} Fuel price {verb} — {d['station']}", text
+        up = d["delta"] > 0
+        arrow = "▲" if up else "▼"
+        verb = ("gestegen" if up else "gedaald") if nl else ("up" if up else "down")
+        was = d["price"] - d["delta"]
+        lines = [
+            f"{'📈' if up else '📉'} {d['station']}",
+            f"💶 €{d['price']:.3f}  ({d['delta']:+.3f})  ·  was €{was:.3f}",
+        ]
+        if d.get("info"):
+            lines.append(f"📍 {d['info']}")
+        prices = d.get("prices") or []
+        if d.get("cheapest"):
+            lines.append("")
+            if d["gap"]:
+                if nl:
+                    lines.append(f"🏆 Goedkoopst: {d['cheapest']}")
+                    lines.append(f"↔️ €{d['gap']:.3f} goedkoper dan {d['priciest']}")
+                else:
+                    lines.append(f"🏆 Cheapest: {d['cheapest']}")
+                    lines.append(f"↔️ €{d['gap']:.3f} below {d['priciest']}")
+            else:
+                lines.append("🟰 Alle prijzen zijn gelijk" if nl else "🟰 All prices are equal")
+        if len(prices) > 1:
+            lines += ["", "⛽ Overzicht" if nl else "⛽ Overview"]
+            lines += [f"{'🥇' if n == d.get('cheapest') and d['gap'] else '▫️'} {n}  €{pr:.3f}" for n, pr in prices]
+        title = f"⛽{arrow} Benzineprijs {verb} — {d['station']}" if nl else f"⛽{arrow} Fuel price {verb} — {d['station']}"
+        return title, "\n".join(lines)
     if kind == "tyre_ok":
         return (
             (f"Bandenspanning {name}", "✅ De bandenspanning is weer normaal.")
