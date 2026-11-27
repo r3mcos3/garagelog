@@ -906,7 +906,10 @@
       const editing = !!record, vals = record || {};
       const today = new Date().toISOString().slice(0, 10);
       const fields = FORMS[collection].map(([key, kind, step, required]) => {
-        const label = t["f_" + key], val = vals[key];
+        const label = t["f_" + key];
+        // new entry: prefill the odometer with the live value (editable)
+        const live = this._snap && this._snap.view ? this._snap.view.odometer : null;
+        const val = key === "odometer" && !editing && live != null ? Math.round(live) : vals[key];
         if (kind === "date") return `<label class="field">${esc(label)}<input type="text" inputmode="numeric" maxlength="10" data-mask="date" name="${key}" placeholder="${esc(t.date_ph)}" value="${esc(fmtDate(val || (key === "date" && !editing ? today : "")))}"></label>`;
         if (kind === "num") return `<label class="field">${esc(label)}${required ? " *" : ""}<input type="number" step="${step}" min="0" name="${key}" value="${esc(val ?? "")}" ${required ? "required" : ""}></label>`;
         if (kind === "bool") return `<label class="field check"><input type="checkbox" name="${key}" ${val === false ? "" : "checked"}> ${esc(label)}</label>`;
